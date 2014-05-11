@@ -1,0 +1,40 @@
+Xft.antialias: 1
+Xft.hinting: 1
+Xft.dpi: 96
+Xft.hintstyle: hintmedium
+Xft.lcdfilter: lcddefault
+Xft.rgba: rgb
+
+Xcursor.theme: Adwaita
+
+URxvt*font:xft:Terminus:pixelsize=9
+URxvt*loginShell:false
+URxvt*transparent:true
+URxvt*shading:20
+URxvt*scrollBar:false
+URxvt*transpscrollbar:true
+URxvt*saveLines:32767
+
+URxvt.foreground: #FFFFFF
+URxvt.background: #000000
+URxvt.color0:     #2E3436
+URxvt.color1:     #C86969
+URxvt.color2:     #4E9A06
+URxvt.color3:     #C4A000
+URxvt.color4:     #3465A4
+URxvt.color5:     #75507B
+URxvt.color6:     #06989A
+URxvt.color7:     #D3D7CF
+URxvt.color8:     #555753
+URxvt.color9:     #EF2929
+URxvt.color10:    #8AE234
+URxvt.color11:    #FCE94F
+URxvt.color12:    #729FCF
+URxvt.color13:    #AD7FA8
+URxvt.color14:    #34E2E2
+URxvt.color15:    #EEEEEC
+
+URxvt.perl-ext-common: font-size
+URxvt.keysym.C-S-Up:     perl:font-size:increase
+URxvt.keysym.C-S-Down:   perl:font-size:decrease
+URxvt.iso14755: false

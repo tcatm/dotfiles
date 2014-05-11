@@ -1,0 +1,14 @@
+style "default" {
+    bg[NORMAL]   = "#231F20"
+    fg[NORMAL]   = "#fefefe"
+    text[NORMAL] = "#fefefe"
+}
+
+style "notification-button" = "default" {
+    text[NORMAL] = "#FF0000"
+    fg[NORMAL]   = "#FF0000"
+}
+
+widget "Taffybar*" style "default"
+widget "*NotificationCloseButton" style "notification-button"
+gtk-font-name="Roboto Regular 11"

@@ -1,0 +1,12 @@
+style "default-style"
+{
+  GtkWindow::resize-grip-height = 0
+  GtkWindow::resize-grip-width = 0
+}
+
+class "GtkWidget" style "default-style"
+
+#gtk-font-name = "Lucida Grande Mono 8"
+gtk-font-name = "DejaVu Sans 8"
+#gtk-font-name = "Liberation Sans 8"
+gtk-icon-theme-name="gnome"

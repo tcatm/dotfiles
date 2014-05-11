@@ -1,0 +1,23 @@
+Config { font = "xft:Terminus:size=9"
+       , bgColor = "#000000"
+       , fgColor = "#ffca00"
+--       , border = BottomBM 0
+       , borderColor = "#aa8800"
+       , position = TopSize L 100 16
+       , lowerOnStart = True
+       , commands = [ Run Network "wlan0" ["-L","0","-H","256","--normal","#C9E414","--high","#F06C6A","-t","<fc=#aaaaaa><icon=.icons/wifi_02.xbm/></fc><rx>/<tx>"] 100
+                    , Run Cpu ["-L","3","-H","50","--normal","#C9E414","--high","#F06C6A","-t","<fc=#aaaaaa><icon=.icons/cpu.xbm/></fc><total>"] 100
+                    , Run Memory ["-t","<fc=#aaaaaa><icon=.icons/mem.xbm/></fc><usedratio>"] 100
+                    , Run Date "%a %b %_d %Y %H:%M" "date" 100
+          	  	    , Run StdinReader
+            		    , Run Battery ["-t", "<fc=#aaaaaa><acstatus></fc><watts> <left>% <timeleft>"
+                                  ,"--"
+                                  ,"-O", "<fc=#ff7f00><icon=.icons/ac.xbm/></fc>"
+                                  ,"-i", "<fc=#00ff7f><icon=.icons/ac_01.xbm/></fc>"
+                                  ,"-o", "<icon=.icons/bat_full_01.xbm/>"
+                                  ] 100
+                    ]
+       , sepChar = "%"
+       , alignSep = "}{"
+       , template = "                          %StdinReader%}{%battery%%wlan0%%memory%%cpu%<fc=#aaaaaa><icon=.icons/clock.xbm/></fc>%date%"
+       }

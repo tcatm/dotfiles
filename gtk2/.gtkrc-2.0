@@ -1,0 +1,9 @@
+# -- THEME AUTO-WRITTEN BY gtk-theme-switch2 DO NOT EDIT
+#include "/home/nils/.themes/Murrina Haikuish/gtk-2.0/gtkrc"
+#include "/home/nils/.themes/reNIX/gtk-2.0/gtkrc"
+#include "/home/nils/.themes/Elegant_revisited/gtk-2.0/gtkrc"
+include "/home/nils/.themes/Uncomplicated/gtk-2.0/gtkrc"
+
+include "/home/nils/.gtkrc-2.0.mine"
+
+# -- THEME AUTO-WRITTEN BY gtk-theme-switch2 DO NOT EDIT
