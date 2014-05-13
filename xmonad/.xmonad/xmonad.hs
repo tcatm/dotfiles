@@ -3,34 +3,20 @@
 
 import XMonad
 import XMonad.Actions.CycleWS
-import XMonad.Actions.GridSelect
-import XMonad.Actions.NoBorders
+import XMonad.Actions.CycleWindows
 import XMonad.Actions.PhysicalScreens
-import XMonad.Actions.RotSlaves
 import XMonad.Actions.PerWorkspaceKeys
 import XMonad.Actions.SpawnOn
 import XMonad.Actions.UpdatePointer
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
-import XMonad.Hooks.ManageHelpers
-import XMonad.Layout.BoringWindows hiding (Replace)
-import XMonad.Layout.Grid
 import XMonad.Layout.LayoutModifier
 import XMonad.Layout.LayoutScreens
-import XMonad.Layout.Minimize
-import XMonad.Layout.MultiToggle as MT
-import XMonad.Layout.MultiToggle.Instances
 import XMonad.Layout.NoBorders
-import XMonad.Layout.NoFrillsDecoration
 import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Reflect
 import XMonad.Layout.Renamed
-import XMonad.Layout.ResizableTile
-import XMonad.Layout.StackTile
-import XMonad.Layout.Tabbed
-import XMonad.Layout.ThreeColumns
-import XMonad.Layout.ToggleLayouts as TL
 import XMonad.Layout.TrackFloating
 import XMonad.Layout.TwoPane
 import XMonad.Layout.WindowNavigation
@@ -42,6 +28,7 @@ import XMonad.Util.NamedScratchpad
 import XMonad.Util.NamedWindows (getName)
 import XMonad.Util.Run
 import XMonad.Util.WindowProperties
+import XMonad.Util.WorkspaceCompare
 import XMonad.Util.XUtils (fi)
 
 import DBus.Client
@@ -50,12 +37,7 @@ import System.Taffybar.Hooks.PagerHints (pagerHints)
 
 import Foreign.C.Types (CLong)
 
-import Control.Monad
-
 import Data.Monoid
-import Data.Maybe
-import Data.Traversable (traverse)
-import Data.List
 
 import qualified Data.Map as M
 import qualified XMonad.StackSet as W
@@ -66,14 +48,7 @@ main = do
     let pp = defaultPP
     client <- connectSession
     xmonad $ pagerHints $ myConfig {
-      startupHook = do
-                  startupHook myConfig
-                  -- This must happen after ewmh config has been activated!
-                  setFullscreenSupported
-      ,
-      logHook = do
-                  logHook myConfig
-                  dbusLogWithPP client . namedScratchpadFilterOutWorkspacePP $ myPP
+      logHook = logHook myConfig <+> (dbusLogWithPP client $ myPP)
     }
 
 -- Statusbar
@@ -83,23 +58,9 @@ myPP = taffybarPP { ppCurrent = return ""
                 , ppHiddenNoWindows = return "" 
                 , ppTitle = taffybarColor "#ffca00" "" . shorten 100
                 , ppLayout = return ""
-                , ppExtras =  [ logMinimized ]
                 }
 
--- FIXME: actually filter for minimized windows
-logMinimized :: Logger
-logMinimized = withWindowSet $ \ws -> filterM isMinimized (W.index ws) >>= mapM windowName >>= return . Just . intercalate " <span fgcolor=\"#aaaaaa\">/</span> " . map (wrap "<span fgcolor=\"#ff0000\">" "</span>")
-  where
-    windowName = fmap show . getName
-
-isMinimized :: Window -> X Bool
-isMinimized win = do
-      wmstate <- getAtom "_NET_WM_STATE"
-      mini <- getAtom "_NET_WM_STATE_HIDDEN"
-      wstate <- fromMaybe [] `fmap` getProp32 wmstate win
-      return $ fromIntegral mini `elem` wstate
-
-myWorkspaces = ["1:com", "2:web", "3", "4", "5", "6", "7", "8", "9",  "0", "NSP", "full"]
+myWorkspaces = ["1", "2", "3", "4", "5", "6", "7", "8", "9",  "0", "NSP", "full"]
 
 doShiftAndView ws = mconcat $ fmap (\y -> y ws) [\x -> ask >> doF . W.view $ x, doShift]
 
@@ -110,11 +71,8 @@ myManageHook = (composeAll
                , className =? "Do" --> doIgnore
                , className =? "Wine" --> doFloat
                , className =? "Xmessage"  --> doFloat
-               , className =? "Gimp" --> doShiftAndView "0"
-               , className =? "Wireshark" --> doShiftAndView "0"
                , className =? "VirtualBox" --> doShiftAndView "full"
                , checkDialog --> doFloat
-               , (fmap or $ mapM (currentWs =?) ["1:com", "2:web", "0", "NSP", "full"]) <&&> className =? "Roxterm" --> doShiftAndView "3"
                ])
                <+> namedScratchpadManageHook scratchpads
 
@@ -128,19 +86,13 @@ newKeys x = M.union (M.fromList (myKeys x)) (keys defaultConfig x)
 
 myKeys conf@(XConfig {XMonad.modMask = modm}) =
              [ ((modm, xK_v ), shellPromptHere myXPConfig)
---             [ ((modm, xK_v ), spawnHere "goa")
---             , ((modm .|. shiftMask, xK_v ), shellPromptHere myXPConfig)
              , ((modm, xK_b), sendMessage ToggleStruts)
              , ((modm, xK_c ), kill)
              , ((modm, xK_F12), xmonadPrompt myXPConfig)
              , ((modm .|. mod1Mask, xK_space ), setLayout $ XMonad.layoutHook conf)
-             , ((modm, xK_u), sendMessage MirrorShrink)
-             , ((modm, xK_i), sendMessage MirrorExpand)
-             , ((modm, xK_g), withFocused toggleBorder)
-             , ((modm, xK_s), gridselectWorkspace' defaultGSConfig { gs_cellheight = 60, gs_cellwidth = 400 } W.greedyView)
-             , ((modm, xK_k), focusUp)
-             , ((modm, xK_j), focusDown)
-             , ((modm, xK_a), rotAllUp)
+             , ((modm, xK_k), rotFocusedUp)
+             , ((modm, xK_j), rotFocusedDown)
+             , ((modm, xK_Tab), windows $ W.modify' toggleTwoPane)
              , ((modm .|. shiftMask,   xK_Right), nextWS)
              , ((modm .|. shiftMask,   xK_Left),  prevWS)
              , ((modm,                 xK_Right), sendMessage $ Go R)
@@ -151,18 +103,10 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((modm .|. controlMask, xK_Left ), sendMessage $ Swap L)
              , ((modm .|. controlMask, xK_Up   ), sendMessage $ Swap U)
              , ((modm .|. controlMask, xK_Down ), sendMessage $ Swap D)
-             , ((modm,                 xK_f    ), sendMessage $ TL.Toggle "Full")
-             , ((modm .|. shiftMask,   xK_w    ), sendMessage $ MT.Toggle REFLECTX)
-             , ((modm .|. shiftMask,   xK_e    ), sendMessage $ MT.Toggle REFLECTY)
-             , ((modm .|. shiftMask,   xK_r    ), sendMessage $ MT.Toggle MIRROR)
-
-             , ((modm,               xK_m     ), withFocused minimizeWindow)
-             , ((modm .|. shiftMask, xK_m     ), sendMessage RestoreNextMinimizedWin)
 
              -- scratchpads and similar stuff
              , ((modm, xK_o ), namedScratchpadAction scratchpads "orgmode")
              , ((modm, xK_n ), namedScratchpadAction scratchpads "qalculate")
-             , ((modm, xK_p ), namedScratchpadAction scratchpads "jabber")
              , ((modm, xK_F1 ), namedScratchpadAction scratchpads "neo")
 
              -- spawning things
@@ -199,17 +143,13 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((0, 0x1008ff41), spawn "xset dpms force off")
 
              , ((modm .|. shiftMask,                 xK_space), layoutSplitScreen 2 (TwoPane (2/5) (3/5)))
-             , ((modm .|. shiftMask,                 xK_Tab), layoutSplitScreen 2 (Mirror $ TwoPane (1/2) (1/2)))
              , ((modm .|. controlMask .|. shiftMask, xK_space), rescreen)
 
              , ((modm, xK_w), viewAndWarp 0)
              , ((modm, xK_e), viewAndWarp 1)
              , ((modm, xK_r), viewAndWarp 2)
 
-             , ((modm, xK_Tab), toggleWS)
-             , ((modm .|. mod1Mask, xK_Return), moveTo Next EmptyWS)
-
-             , ((modm, xK_BackSpace), bindOn [("full", focusDown), ("", windows $ W.greedyView "full")])
+             , ((modm, xK_BackSpace), bindOn [("full", windows W.focusDown), ("", windows $ W.greedyView "full")])
 
              -- view (switch to workspace)
              ]++[
@@ -226,60 +166,33 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
           where
             myXPConfig = defaultXPConfig
 
-withTitles l = noFrillsDeco shrinkText myTabConfig l
-
 myLayout =
-           boringWindows $
-           onWorkspace "full" full $
+           smartBorders $
+           onWorkspace "full" Full $
            avoidStruts $
            trackFloating $
-           toggleLayouts full $
            configurableNavigation noNavigateBorders $
-           renamed [CutWordsLeft 1] $ minimize $
-           smartBorders $
            with_sidebars $
-           onWorkspace "1:com" (stack ||| grid) $
-           onWorkspace "2:web" (tabs ||| tiled) $
-           onWorkspace "0" tabs $
-           layouts
+           (Full ||| twopane)
 
          where
-           layouts      = tiled |||
-                          stack |||
-                          grid |||
-                          threecol |||
-                          tabs
-
-           grid         = renamed [Replace "Grid"] $ GridRatio (4/3)
-           threecol     = renamed [Replace "ThreeCol"] $ toggles $ ThreeColMid 1 (3/100) (1/2)
+           tiled        = Tall 1 (3/100) (1/2)
            twopane      = TwoPane (3/100) (1/2) 
-           tiled        = renamed [Replace "Tiled"] $ toggles $ resizable
-           tabs         = renamed [Replace "Tabs"] $ noBorders (tabbed shrinkText myTabConfig)
-           stack        = renamed [Replace "Stack"] $ StackTile 1 (3/100) (4/5)
-           full         = noBorders Full
-           resizable    = Mirror $ ResizableTall 2 (3/100) (3/5) []
 
-           with_sidebars x = renamed [CutWordsLeft 7] $
-                             withIM_abs 240 (Title "Speedbar 1.0") $
+           with_sidebars x = renamed [CutWordsLeft 3] $
                              reflectHoriz $
-                             withIM_abs 320 (Title "pino") $
-                             withIM_abs 200 (Role "roster") $
-                             withIM_abs 400 (Role "mainWindow") $
                              withIM_abs 656 (Title "orgmode") $
                              reflectHoriz x 
 
-           toggles l = mkToggle (single REFLECTX) $
-                       mkToggle (single REFLECTY) $
-                       mkToggle (single MIRROR) l
-
 -- Main configuration
-myConfig = ewmh defaultConfig
-           { modMask            = mod4Mask
+myConfig = defaultConfig
+           { startupHook        = ewmhDesktopsStartup <+> setFullscreenSupported
+           , modMask            = mod4Mask
            , workspaces         = myWorkspaces
            , layoutHook         = myLayout
            , manageHook         = myManageHook <+> manageSpawn <+> manageDocks
-           , logHook            = updatePointer (Relative 0.5 0.5)
-           , handleEventHook    = fullscreenEventHook
+           , logHook            = ewmhDesktopsLogHook <+> updatePointer (Relative 0.5 0.5)
+           , handleEventHook    = fullscreenEventHook <+> ewmhDesktopsEventHook'
            , keys               = newKeys
            , terminal           = myTerminal
            , borderWidth        = 1
@@ -287,19 +200,8 @@ myConfig = ewmh defaultConfig
            , focusedBorderColor = "#ffca00"
            }
 
-myTabConfig = defaultTheme { inactiveBorderColor = "#336698"
-                           , activeTextColor = "#000000"
-                           , inactiveTextColor = "#ffffff"
-                           , activeColor = "#FFE067"
-                           , activeBorderColor = "#FFE067"
-                           , inactiveColor = "#336698"
-                           , fontName = "xft:Monospace:size=8"
-                           , decoHeight = 14
-                           }
-
 scratchpads = [ NS "orgmode" "emacs --name orgmode ~/important/org/main.org" (icon =? "orgmode") nonFloating
               , NS "qalculate" "qalculate" (icon =? "Qalculate!") nonFloating
-              , NS "jabber" "gajim" (icon =? "Gajim") nonFloating
               , NS "neo" "display ~/Desktop/neo.png" (icon =? "neo.png")
                 (customFloating $ W.RationalRect (0) (3/5) (1/1) (2/5))
               ] where icon = stringProperty "WM_ICON_NAME"
@@ -372,24 +274,47 @@ setFullscreenSupported = withDisplay $ \dpy -> do
     p <- getAtom "_NET_WM_STATE_FULLSCREEN"
     io $ changeProperty32 dpy r a c propModeAppend [fromIntegral p]
 
-fullscreenEventHook' :: Event -> X All
-fullscreenEventHook' (ClientMessageEvent _ _ _ dpy win typ (action:dats)) = do
-  wmstate <- getAtom "_NET_WM_STATE"
-  fullsc <- getAtom "_NET_WM_STATE_FULLSCREEN"
+toggleTwoPane :: (Eq a) => W.Stack a -> W.Stack a
+toggleTwoPane s@(W.Stack t [] []) = s
+toggleTwoPane s@(W.Stack t  l  r)
+  | l == []     = W.Stack (head r) [t] (tail r)
+  | otherwise   = W.Stack (head l) [] $ t:((tail l) ++ r)
 
-  when (typ == wmstate && fi fullsc `elem` dats) $ do
-    sendMessage $ TL.Toggle "Full"
+ewmhDesktopsEventHook' :: Event -> X All
+ewmhDesktopsEventHook' e = handle e >> return (All True)
+  where
+    handle :: Event -> X ()
+    handle (ClientMessageEvent {
+                   ev_window = w,
+                   ev_message_type = mt,
+                   ev_data = d
+           }) = withWindowSet $ \s -> do
+           sort' <- getSortByIndex
+           let ws = sort' $ W.workspaces s
 
-  return $ All True
-
-gridselectWorkspace' :: GSConfig WorkspaceId ->
-                          (WorkspaceId -> WindowSet -> WindowSet) -> X ()
-gridselectWorkspace' conf viewFunc = withWindowSet $ \ws -> do
-    let wslist = (filter (((/=) "NSP") . W.tag) (filter (isJust . W.stack) $ W.hidden ws)) ++ map W.workspace (W.current ws : W.visible ws)
-    winlist <- sequence . map windowList $ wslist
-    let wslist' = zip wslist winlist
-    let wss = map (\ws -> concat [(W.tag . fst) ws, " :: ", snd ws]) wslist'
-    gridselect conf (zip wss $ map W.tag wslist) >>= flip whenJust (windows . viewFunc)
-
-    where
-      windowList = liftM (intercalate ", ") . traverse (fmap show . getName) . W.integrate' . W.stack
+           a_cd <- getAtom "_NET_CURRENT_DESKTOP"
+           a_d <- getAtom "_NET_WM_DESKTOP"
+           a_aw <- getAtom "_NET_ACTIVE_WINDOW"
+           a_cw <- getAtom "_NET_CLOSE_WINDOW"
+           a_ignore <- mapM getAtom ["XMONAD_TIMER"]
+           if  mt == a_cd then do
+                   let n = head d
+                   if 0 <= n && fi n < length ws then
+                           windows $ W.view (W.tag (ws !! fi n))
+                     else  trace $ "Bad _NET_CURRENT_DESKTOP with data[0]="++show n
+            else if mt == a_d then do
+                   let n = head d
+                   if 0 <= n && fi n < length ws then
+                           windows $ W.shiftWin (W.tag (ws !! fi n)) w
+                     else  trace $ "Bad _NET_DESKTOP with data[0]="++show n
+            else if mt == a_aw then do
+                   windows $ W.swapMaster . W.focusWindow w
+            else if mt == a_cw then do
+                   killWindow w
+            else if mt `elem` a_ignore then do
+               return ()
+            else do
+              -- The Message is unknown to us, but that is ok, not all are meant
+              -- to be handled by the window manager
+              return ()
+    handle _ = return ()
