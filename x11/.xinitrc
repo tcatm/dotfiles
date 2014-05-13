@@ -34,5 +34,6 @@ cryptkeeper &
 seafile-applet &
 bin/pulseosd &
 taffybar &
+workrave &
 
 exec xmonad
