@@ -131,7 +131,6 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((modm .|. shiftMask, xK_q     ), io (exitWith ExitSuccess)) -- %! Quit xmonad
              , ((modm              , xK_q     ), spawn "if type xmonad; then xmonad --recompile && xmonad --restart; else xmessage xmonad not in \\$PATH: \"$PATH\"; fi") -- %! Restart xmonad
 
-             , ((modm, xK_v ), shellPromptHere myXPConfig)
              , ((modm, xK_b), sendMessage ToggleStruts)
              , ((modm, xK_c ), kill)
              , ((modm, xK_F12), xmonadPrompt myXPConfig)
