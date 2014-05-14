@@ -36,5 +36,6 @@ bin/pulseosd &
 taffybar &
 workrave &
 xfce4-panel &
+synapse &
 
 exec xmonad
