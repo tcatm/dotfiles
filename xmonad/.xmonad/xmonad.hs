@@ -6,6 +6,7 @@ import XMonad.Actions.CycleWS
 import XMonad.Actions.CycleWindows
 import XMonad.Actions.PhysicalScreens
 import XMonad.Actions.PerWorkspaceKeys
+import XMonad.Actions.RotSlaves
 import XMonad.Actions.SpawnOn
 import XMonad.Actions.UpdatePointer
 import XMonad.Hooks.DynamicLog
@@ -19,7 +20,6 @@ import XMonad.Layout.Reflect
 import XMonad.Layout.Renamed
 import XMonad.Layout.TrackFloating
 import XMonad.Layout.TwoPane
-import XMonad.Layout.WindowNavigation
 import XMonad.Prompt
 import XMonad.Prompt.Shell
 import XMonad.Prompt.XMonad
@@ -38,6 +38,7 @@ import System.Taffybar.Hooks.PagerHints (pagerHints)
 import Foreign.C.Types (CLong)
 
 import Data.Monoid
+import Data.Ratio
 
 import qualified Data.Map as M
 import qualified XMonad.StackSet as W
@@ -78,9 +79,26 @@ myManageHook = (composeAll
 
           where role = stringProperty "WM_WINDOW_ROLE"
                 icon = stringProperty "WM_ICON_NAME" 
---                doWilderScheiß = do 
---                      w <- gets $ W.hidden . windowset
---                      doShiftAndView . show . W.tag $ head w
+
+getLayout = withWindowSet $ return . W.layout . W.workspace . W.current
+
+differentTwoPane a b = do
+  layout <- fmap description getLayout
+  case layout of
+    "TwoPane" -> a
+    _         -> b
+
+toggleWindow = differentTwoPane
+                 (windows $ W.modify' toggleTwoPane)
+                 (windows $ W.focusDown)
+
+windowUp = differentTwoPane
+             rotFocusedUp
+             (windows $ W.focusUp)
+
+windowDown = differentTwoPane
+               rotFocusedDown
+               (windows $ W.focusDown)
 
 newKeys x = M.union (M.fromList (myKeys x)) (keys defaultConfig x)
 
@@ -90,19 +108,14 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((modm, xK_c ), kill)
              , ((modm, xK_F12), xmonadPrompt myXPConfig)
              , ((modm .|. mod1Mask, xK_space ), setLayout $ XMonad.layoutHook conf)
-             , ((modm, xK_k), rotFocusedUp)
-             , ((modm, xK_j), rotFocusedDown)
-             , ((modm, xK_Tab), windows $ W.modify' toggleTwoPane)
-             , ((modm .|. shiftMask,   xK_Right), nextWS)
-             , ((modm .|. shiftMask,   xK_Left),  prevWS)
-             , ((modm,                 xK_Right), sendMessage $ Go R)
-             , ((modm,                 xK_Left ), sendMessage $ Go L)
-             , ((modm,                 xK_Up   ), sendMessage $ Go U)
-             , ((modm,                 xK_Down ), sendMessage $ Go D)
-             , ((modm .|. controlMask, xK_Right), sendMessage $ Swap R)
-             , ((modm .|. controlMask, xK_Left ), sendMessage $ Swap L)
-             , ((modm .|. controlMask, xK_Up   ), sendMessage $ Swap U)
-             , ((modm .|. controlMask, xK_Down ), sendMessage $ Swap D)
+             , ((modm, xK_k), windowUp)
+             , ((modm, xK_j), windowDown)
+             , ((modm, xK_Tab), toggleWindow)
+
+             , ((modm, xK_Right), nextWS)
+             , ((modm, xK_Left),  prevWS)
+             , ((modm, xK_Up),    windowUp)
+             , ((modm, xK_Down),  windowDown)
 
              -- scratchpads and similar stuff
              , ((modm, xK_o ), namedScratchpadAction scratchpads "orgmode")
@@ -171,13 +184,12 @@ myLayout =
            onWorkspace "full" Full $
            avoidStruts $
            trackFloating $
-           configurableNavigation noNavigateBorders $
            with_sidebars $
-           (Full ||| twopane)
+           (twopane ||| Full)
 
          where
            tiled        = Tall 1 (3/100) (1/2)
-           twopane      = TwoPane (3/100) (1/2) 
+           twopane      = TwoPane' (3/100) (1/2)
 
            with_sidebars x = renamed [CutWordsLeft 3] $
                              reflectHoriz $
@@ -318,3 +330,30 @@ ewmhDesktopsEventHook' e = handle e >> return (All True)
               -- to be handled by the window manager
               return ()
     handle _ = return ()
+
+
+data TwoPane' a =
+    TwoPane' Rational Rational
+    deriving ( Show, Read )
+
+instance LayoutClass TwoPane' a where
+    doLayout (TwoPane' _ split) r s = return (arrange r s,Nothing)
+        where
+          arrange rect st = case reverse (W.up st) of
+                              (master:_) -> [(master,left),(W.focus st,right)]
+                              [] -> case W.down st of
+                                      (next:_) -> [(W.focus st,left),(next,right)]
+                                      [] -> [(W.focus st, rect)]
+              where
+                (left, right) = f rect split rect
+                f (Rectangle _ _ w h)
+                  | (w%h) <= (4%3) = splitVerticallyBy
+                  | otherwise      = splitHorizontallyBy
+
+    handleMessage (TwoPane' delta split) x =
+        return $ case fromMessage x of
+                   Just Shrink -> Just (TwoPane' delta (split - delta))
+                   Just Expand -> Just (TwoPane' delta (split + delta))
+                   _           -> Nothing
+
+    description _ = "TwoPane"
