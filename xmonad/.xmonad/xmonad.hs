@@ -32,6 +32,8 @@ import XMonad.Util.WorkspaceCompare
 import XMonad.Util.XUtils (fi)
 
 import DBus.Client
+
+import System.Exit
 import System.Taffybar.XMonadLog
 import System.Taffybar.Hooks.PagerHints (pagerHints)
 
@@ -90,7 +92,7 @@ differentTwoPane a b = do
 
 toggleWindow = differentTwoPane
                  (windows $ W.modify' toggleTwoPane)
-                 (windows $ W.focusDown)
+                 (return ())
 
 windowUp = differentTwoPane
              rotFocusedUp
@@ -100,22 +102,49 @@ windowDown = differentTwoPane
                rotFocusedDown
                (windows $ W.focusDown)
 
-newKeys x = M.union (M.fromList (myKeys x)) (keys defaultConfig x)
+newKeys = M.fromList . myKeys
 
 myKeys conf@(XConfig {XMonad.modMask = modm}) =
-             [ ((modm, xK_v ), shellPromptHere myXPConfig)
+             [ ((modm .|. shiftMask, xK_Return), spawn $ XMonad.terminal conf) -- %! Launch terminal
+             , ((modm,               xK_space ), sendMessage NextLayout) -- %! Rotate through the available layout algorithms
+             , ((modm .|. shiftMask, xK_space ), setLayout $ XMonad.layoutHook conf) -- %!  Reset the layouts on the current workspace to default
+
+             , ((modm,               xK_n     ), refresh) -- %! Resize viewed windows to the correct size
+
+             -- modifying the window order
+             , ((modm,               xK_Return), windows W.swapMaster) -- %! Swap the focused window and the master window
+             , ((modm .|. shiftMask, xK_j     ), windows W.swapDown  ) -- %! Swap the focused window with the next window
+             , ((modm .|. shiftMask, xK_k     ), windows W.swapUp    ) -- %! Swap the focused window with the previous window
+
+             -- resizing the master/slave ratio
+             , ((modm,               xK_h     ), sendMessage Shrink) -- %! Shrink the master area
+             , ((modm,               xK_l     ), sendMessage Expand) -- %! Expand the master area
+
+             -- floating layer support
+             , ((modm,               xK_t     ), withFocused $ windows . W.sink) -- %! Push window back into tiling
+
+             -- increase or decrease number of windows in the master area
+             , ((modm              , xK_comma ), sendMessage (IncMasterN 1)) -- %! Increment the number of windows in the master area
+             , ((modm              , xK_period), sendMessage (IncMasterN (-1))) -- %! Deincrement the number of windows in the master area
+
+             -- quit, or restart
+             , ((modm .|. shiftMask, xK_q     ), io (exitWith ExitSuccess)) -- %! Quit xmonad
+             , ((modm              , xK_q     ), spawn "if type xmonad; then xmonad --recompile && xmonad --restart; else xmessage xmonad not in \\$PATH: \"$PATH\"; fi") -- %! Restart xmonad
+
+             , ((modm, xK_v ), shellPromptHere myXPConfig)
              , ((modm, xK_b), sendMessage ToggleStruts)
              , ((modm, xK_c ), kill)
              , ((modm, xK_F12), xmonadPrompt myXPConfig)
-             , ((modm .|. mod1Mask, xK_space ), setLayout $ XMonad.layoutHook conf)
+
+             -- move focus up or down the window stack
              , ((modm, xK_k), windowUp)
              , ((modm, xK_j), windowDown)
              , ((modm, xK_Tab), toggleWindow)
+             , ((modm, xK_Up),    windowUp)
+             , ((modm, xK_Down),  windowDown)
 
              , ((modm, xK_Right), nextWS)
              , ((modm, xK_Left),  prevWS)
-             , ((modm, xK_Up),    windowUp)
-             , ((modm, xK_Down),  windowDown)
 
              -- scratchpads and similar stuff
              , ((modm, xK_o ), namedScratchpadAction scratchpads "orgmode")
@@ -155,7 +184,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
 
              , ((0, 0x1008ff41), spawn "xset dpms force off")
 
-             , ((modm .|. shiftMask,                 xK_space), layoutSplitScreen 2 (TwoPane (2/5) (3/5)))
+             , ((modm,                               xK_s), layoutSplitScreen 2 (TwoPane (2/5) (3/5)))
              , ((modm .|. controlMask .|. shiftMask, xK_space), rescreen)
 
              , ((modm, xK_w), viewAndWarp 0)
