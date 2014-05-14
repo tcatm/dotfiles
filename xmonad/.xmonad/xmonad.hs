@@ -235,9 +235,9 @@ myConfig = defaultConfig
            , handleEventHook    = fullscreenEventHook <+> ewmhDesktopsEventHook'
            , keys               = newKeys
            , terminal           = myTerminal
-           , borderWidth        = 1
+           , borderWidth        = 2
            , normalBorderColor  = "#4d3d00"
-           , focusedBorderColor = "#ffca00"
+           , focusedBorderColor = "#ff0000"
            }
 
 scratchpads = [ NS "orgmode" "emacs --name orgmode ~/important/org/main.org" (icon =? "orgmode") nonFloating
