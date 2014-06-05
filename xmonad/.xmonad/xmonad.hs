@@ -2,10 +2,10 @@
 {-# OPTIONS_GHC -fcontext-stack=100 #-}
 
 import XMonad
-import XMonad.Actions.CycleWS
 import XMonad.Actions.CycleWindows
-import XMonad.Actions.PhysicalScreens
+import XMonad.Actions.CycleWS
 import XMonad.Actions.PerWorkspaceKeys
+import XMonad.Actions.PhysicalScreens
 import XMonad.Actions.RotSlaves
 import XMonad.Actions.SpawnOn
 import XMonad.Actions.UpdatePointer
@@ -18,6 +18,7 @@ import XMonad.Layout.NoBorders
 import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Reflect
 import XMonad.Layout.Renamed
+import XMonad.Layout.ToggleLayouts as TL
 import XMonad.Layout.TrackFloating
 import XMonad.Layout.TwoPane
 import XMonad.Prompt
@@ -107,6 +108,7 @@ newKeys = M.fromList . myKeys
 myKeys conf@(XConfig {XMonad.modMask = modm}) =
              [ ((modm .|. shiftMask, xK_Return), spawn $ XMonad.terminal conf) -- %! Launch terminal
              , ((modm,               xK_space ), sendMessage NextLayout) -- %! Rotate through the available layout algorithms
+             , ((modm,               xK_f     ), sendMessage $ TL.Toggle "Full")
              , ((modm .|. shiftMask, xK_space ), setLayout $ XMonad.layoutHook conf) -- %!  Reset the layouts on the current workspace to default
 
              , ((modm,               xK_n     ), refresh) -- %! Resize viewed windows to the correct size
@@ -209,15 +211,18 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
 
 myLayout =
            smartBorders $
-           onWorkspace "full" Full $
+           onWorkspace "full" full $
            avoidStruts $
            trackFloating $
            with_sidebars $
-           (twopane ||| Full)
+           toggleLayouts full $
+           (stack ||| twopane ||| twopane')
 
          where
-           tiled        = Tall 1 (3/100) (1/2)
+           full         = noBorders Full
            twopane      = TwoPane' (3/100) (1/2)
+           twopane'     = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (1/2)
+           stack        = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (4/5)
 
            with_sidebars x = renamed [CutWordsLeft 3] $
                              reflectHoriz $
