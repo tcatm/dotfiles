@@ -8,6 +8,7 @@ import XMonad.Actions.PerWorkspaceKeys
 import XMonad.Actions.PhysicalScreens
 import XMonad.Actions.RotSlaves
 import XMonad.Actions.SpawnOn
+import XMonad.Actions.UpdateFocus
 import XMonad.Actions.UpdatePointer
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
@@ -15,6 +16,7 @@ import XMonad.Hooks.ManageDocks
 import XMonad.Layout.LayoutModifier
 import XMonad.Layout.LayoutScreens
 import XMonad.Layout.NoBorders
+import XMonad.Layout.NoFrillsDecoration
 import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Reflect
 import XMonad.Layout.Renamed
@@ -103,7 +105,26 @@ windowDown = differentTwoPane
                rotFocusedDown
                (windows $ W.focusDown)
 
+toggleMaster = W.modify' $ \c -> case c of
+               W.Stack t [] []     -> W.Stack t [] []
+               W.Stack t [] (r:rs) -> W.Stack r [] (t:rs)
+               W.Stack t ls rs     -> W.Stack t [] (xs ++ x : rs)
+                                      where (x:xs) = reverse ls
+
 newKeys = M.fromList . myKeys
+
+myMouse (XConfig {XMonad.modMask = modMask}) = M.fromList
+    -- mod-button1 %! Set the window to floating mode and move by dragging
+    [ ((modMask, button1), \w -> focus w >> mouseMoveWindow w >> windows W.shiftMaster)
+
+    -- mod-button2 %! Raise the window to the top of the stack
+    , ((modMask, button2), windows . (W.shiftMaster .) . W.focusWindow)
+
+    -- mod-button3 %! Set the window to floating mode and resize by dragging
+    , ((modMask, button3), \w -> focus w >> mouseResizeWindow w >> windows W.shiftMaster)
+
+    -- you may also bind events to the mouse scroll wheel (button4 and button5)
+    ]
 
 myKeys conf@(XConfig {XMonad.modMask = modm}) =
              [ ((modm .|. shiftMask, xK_Return), spawn $ XMonad.terminal conf) -- %! Launch terminal
@@ -114,7 +135,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((modm,               xK_n     ), refresh) -- %! Resize viewed windows to the correct size
 
              -- modifying the window order
-             , ((modm,               xK_Return), windows W.swapMaster) -- %! Swap the focused window and the master window
+             , ((modm,               xK_Return), windows toggleMaster) -- %! Swap the focused window and the master window
              , ((modm .|. shiftMask, xK_j     ), windows W.swapDown  ) -- %! Swap the focused window with the next window
              , ((modm .|. shiftMask, xK_k     ), windows W.swapUp    ) -- %! Swap the focused window with the previous window
 
@@ -209,9 +230,18 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
           where
             myXPConfig = defaultXPConfig
 
-myLayout =
-           smartBorders $
-           onWorkspace "full" full $
+myTheme = defaultTheme { inactiveBorderColor = "#336698"
+                       , activeTextColor = "#000000"
+                       , inactiveTextColor = "#ffffff"
+                       , activeColor = "#FFE067"
+                       , activeBorderColor = "#FFE067"
+                       , inactiveColor = "#336698"
+                       , fontName = "xft:Monospace:size=8"
+                       , decoHeight = 14
+                       }
+
+
+myLayout = onWorkspace "full" full $
            avoidStruts $
            trackFloating $
            with_sidebars $
@@ -224,20 +254,21 @@ myLayout =
            twopane'     = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (1/2)
            stack        = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (4/5)
 
-           with_sidebars x = renamed [CutWordsLeft 3] $
-                             reflectHoriz $
-                             withIM_abs 656 (Title "orgmode") $
-                             reflectHoriz x 
+           with_sidebars = renamed [CutWordsLeft 3] .
+                           reflectHoriz .
+                           withIM_abs 656 (Title "orgmode") .
+                           reflectHoriz
 
 -- Main configuration
 myConfig = defaultConfig
-           { startupHook        = ewmhDesktopsStartup <+> setFullscreenSupported
+           { startupHook        = ewmhDesktopsStartup <+> setFullscreenSupported <+> adjustEventInput
            , modMask            = mod4Mask
            , workspaces         = myWorkspaces
            , layoutHook         = myLayout
            , manageHook         = myManageHook <+> manageSpawn <+> manageDocks
            , logHook            = ewmhDesktopsLogHook <+> updatePointer (Relative 0.5 0.5)
-           , handleEventHook    = fullscreenEventHook <+> ewmhDesktopsEventHook'
+           , handleEventHook    = fullscreenEventHook <+> ewmhDesktopsEventHook' <+> focusOnMouseMove
+           , mouseBindings      = myMouse
            , keys               = newKeys
            , terminal           = myTerminal
            , borderWidth        = 2
