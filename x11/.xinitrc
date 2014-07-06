@@ -34,7 +34,6 @@ cryptkeeper &
 seafile-applet &
 bin/pulseosd &
 taffybar &
-workrave &
 xfce4-panel &
 synapse &
 
