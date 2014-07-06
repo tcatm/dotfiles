@@ -169,6 +169,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((modm, xK_Left),  prevWS)
 
              -- scratchpads and similar stuff
+             , ((modm, xK_p ), namedScratchpadAction scratchpads "tracks")
              , ((modm, xK_o ), namedScratchpadAction scratchpads "orgmode")
              , ((modm, xK_n ), namedScratchpadAction scratchpads "qalculate")
              , ((modm, xK_F1 ), namedScratchpadAction scratchpads "neo")
@@ -241,7 +242,8 @@ myTheme = defaultTheme { inactiveBorderColor = "#336698"
                        }
 
 
-myLayout = onWorkspace "full" full $
+myLayout = smartBorders $
+           onWorkspace "full" full $
            avoidStruts $
            trackFloating $
            with_sidebars $
@@ -254,9 +256,10 @@ myLayout = onWorkspace "full" full $
            twopane'     = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (1/2)
            stack        = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (4/5)
 
-           with_sidebars = renamed [CutWordsLeft 3] .
+           with_sidebars = renamed [CutWordsLeft 4] .
                            reflectHoriz .
                            withIM_abs 656 (Title "orgmode") .
+                           withIM_abs 656 (ClassName "Chromium" `And` Role "pop-up") .
                            reflectHoriz
 
 -- Main configuration
@@ -277,6 +280,7 @@ myConfig = defaultConfig
            }
 
 scratchpads = [ NS "orgmode" "emacs --name orgmode ~/important/org/main.org" (icon =? "orgmode") nonFloating
+              , NS "tracks" "chromium --app=https://tracks.draic.info/todos.m" (propertyToQuery $ ClassName "Chromium" `And` Role "pop-up") nonFloating
               , NS "qalculate" "qalculate" (icon =? "Qalculate!") nonFloating
               , NS "neo" "display ~/Desktop/neo.png" (icon =? "neo.png")
                 (customFloating $ W.RationalRect (0) (3/5) (1/1) (2/5))
