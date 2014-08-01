@@ -273,6 +273,7 @@ myLayout =
                       , (ClassName "Chromium" `And` Role "pop-up")
                       , (Role "roster")
                       , (ClassName "Turpial")
+                      , (ClassName "Sonata")
                       ]
 
 -- Main configuration
