@@ -1,6 +1,8 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances, FlexibleContexts #-}
 {-# OPTIONS_GHC -fcontext-stack=100 #-}
 
+import ComboP
+import TwoPaneFixed
 import XMonad
 import XMonad.Actions.CycleWindows
 import XMonad.Actions.CycleWS
@@ -13,6 +15,7 @@ import XMonad.Actions.UpdatePointer
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
+import XMonad.Layout.HintedGrid
 import XMonad.Layout.LayoutModifier
 import XMonad.Layout.LayoutScreens
 import XMonad.Layout.NoBorders
@@ -23,6 +26,7 @@ import XMonad.Layout.Renamed
 import XMonad.Layout.ToggleLayouts as TL
 import XMonad.Layout.TrackFloating
 import XMonad.Layout.TwoPane
+import XMonad.Layout.WindowNavigation
 import XMonad.Prompt
 import XMonad.Prompt.Shell
 import XMonad.Prompt.XMonad
@@ -95,7 +99,7 @@ differentTwoPane a b = do
 
 toggleWindow = differentTwoPane
                  (windows $ W.modify' toggleTwoPane)
-                 (return ())
+                 (windows $ W.focusDown)
 
 windowUp = differentTwoPane
              rotFocusedUp
@@ -165,14 +169,19 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((modm, xK_Up),    windowUp)
              , ((modm, xK_Down),  windowDown)
 
-             , ((modm, xK_Right), nextWS)
-             , ((modm, xK_Left),  prevWS)
+             , ((modm,               xK_Right), sendMessage $ Go R)
+             , ((modm,               xK_Left ), sendMessage $ Go L)
+             , ((modm,               xK_Up   ), sendMessage $ Go U)
+             , ((modm,               xK_Down ), sendMessage $ Go D)
+             , ((modm .|. shiftMask, xK_Right), sendMessage $ Swap R)
+             , ((modm .|. shiftMask, xK_Left ), sendMessage $ Swap L)
+             , ((modm .|. shiftMask, xK_Up   ), sendMessage $ Swap U)
+             , ((modm .|. shiftMask, xK_Down ), sendMessage $ Swap D)
 
              -- scratchpads and similar stuff
              , ((modm, xK_p ), namedScratchpadAction scratchpads "tracks")
              , ((modm, xK_o ), namedScratchpadAction scratchpads "orgmode")
              , ((modm, xK_n ), namedScratchpadAction scratchpads "qalculate")
-             , ((modm, xK_F1 ), namedScratchpadAction scratchpads "neo")
 
              -- spawning things
              , ((modm .|. shiftMask, xK_Return), spawnHere $ XMonad.terminal conf)
@@ -242,13 +251,15 @@ myTheme = defaultTheme { inactiveBorderColor = "#336698"
                        }
 
 
-myLayout = smartBorders $
+myLayout =
            onWorkspace "full" full $
            avoidStruts $
-           trackFloating $
-           with_sidebars $
+           windowNavigation $
+           smartBorders $
            toggleLayouts full $
-           (stack ||| twopane ||| twopane')
+           with_sidebars $
+           trackFloating $
+           (Grid False ||| Grid True ||| twopane ||| twopane' ||| full)
 
          where
            full         = noBorders Full
@@ -256,11 +267,13 @@ myLayout = smartBorders $
            twopane'     = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (1/2)
            stack        = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (4/5)
 
-           with_sidebars = renamed [CutWordsLeft 4] .
-                           reflectHoriz .
-                           withIM_abs 656 (Title "orgmode") .
-                           withIM_abs 656 (ClassName "Chromium" `And` Role "pop-up") .
-                           reflectHoriz
+           with_sidebars x = combineTwoP (TwoPaneFixed (1/2)) x (Grid True)
+                             (Not $ Prelude.foldr Or (Const False) sidebarP)
+           sidebarP = [ (Title "orgmode")
+                      , (ClassName "Chromium" `And` Role "pop-up")
+                      , (Role "roster")
+                      , (ClassName "Turpial")
+                      ]
 
 -- Main configuration
 myConfig = defaultConfig
@@ -282,8 +295,6 @@ myConfig = defaultConfig
 scratchpads = [ NS "orgmode" "emacs --name orgmode ~/important/org/main.org" (icon =? "orgmode") nonFloating
               , NS "tracks" "chromium --app=https://tracks.draic.info/todos.m" (propertyToQuery $ ClassName "Chromium" `And` Role "pop-up") nonFloating
               , NS "qalculate" "qalculate" (icon =? "Qalculate!") nonFloating
-              , NS "neo" "display ~/Desktop/neo.png" (icon =? "neo.png")
-                (customFloating $ W.RationalRect (0) (3/5) (1/1) (2/5))
               ] where icon = stringProperty "WM_ICON_NAME"
 
 
@@ -311,35 +322,6 @@ viewAndWarp n = do
   whenJust i $ \s -> do
                  ws <- screenWorkspace s
                  whenJust ws $ \w -> windows . W.view $ w
-
-data AddRoster_abs a = AddRoster_abs Rational Property deriving (Read, Show)
-
-instance LayoutModifier AddRoster_abs Window where
-  modifyLayout (AddRoster_abs width prop) = applyIM_abs width prop
-  modifierDescription _               = "IM"
-
-withIM_abs :: LayoutClass l a => Rational -> Property -> l a -> ModifiedLayout AddRoster_abs l a
-withIM_abs width prop = ModifiedLayout $ AddRoster_abs width prop
-
-applyIM_abs :: (LayoutClass l Window) =>
-               Rational
-            -> Property
-            -> W.Workspace WorkspaceId (l Window) Window
-            -> Rectangle
-            -> X ([(Window, Rectangle)], Maybe (l Window))
-
-applyIM_abs width prop wksp rect = do
-    let stack = W.stack wksp
-    let ws = W.integrate' $ stack
-    let scr_width = rect_width rect
-    let (masterRect, slaveRect) = splitHorizontallyBy (width/(fromIntegral scr_width)) rect
-    master <- findM (hasProperty prop) ws
-    case master of
-        Just w -> do
-            let filteredStack = stack >>= W.filter (w /=)
-            wrs <- runLayout (wksp {W.stack = filteredStack}) slaveRect
-            return ((w, masterRect) : fst wrs, snd wrs)
-        Nothing -> runLayout wksp rect
 
 findM :: Monad m => (a -> m Bool) -> [a] -> m (Maybe a)
 findM _ [] = return Nothing
