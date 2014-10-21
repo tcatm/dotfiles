@@ -51,7 +51,7 @@ set smartcase
 if has("gui_running")
    " Remove Toolbar
    set guioptions-=T
-   set guifont=Terminus\ 14
+   set guifont=Input\ Mono\ Compressed\ 11
 endif
 
 " highlight current line
@@ -122,7 +122,8 @@ set background=dark
 " Favorite Color Scheme
 "colorscheme solarized
 "colorscheme desert256
-colorscheme seoul256
+"colorscheme seoul256
+colorscheme jellybeans
 "colorscheme distinguished
 "colorscheme zenburn
 
