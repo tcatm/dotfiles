@@ -29,7 +29,7 @@ cpuCallback = do
 main = do
   let cfg = defaultTaffybarConfig { barHeight = 25
                                   , barPosition = Top
-                                  , widgetSpacing = 3
+                                  , widgetSpacing = 8
                                   }
 
   pager <- pagerNew defaultPagerConfig 

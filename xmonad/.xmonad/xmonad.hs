@@ -75,17 +75,27 @@ myPP = taffybarPP { ppCurrent = return ""
                 , ppVisible = return ""
                 , ppHidden = return ""
                 , ppHiddenNoWindows = return "" 
-                , ppTitle = taffybarColor "#ffca00" "" . shorten 100
+                , ppTitle = return ""
                 , ppLayout = return ""
                 , ppExtras =  [ logWindows ]
                 }
 
 
 logWindows :: Logger
-logWindows = withWindowSet $ \ws -> mapM windowName (maybe [] (\s -> W.up s ++ W.down s) . W.stack . W.workspace . W.current $ ws)
-                                >>= return . Just . intercalate " <span fgcolor=\"#aaaaaa\">/</span> " . map (wrap "<span fgcolor=\"#0099ff\">" "</span>")
+logWindows = withWindowSet $ \ws -> do
+                                let stack = W.stack . W.workspace . W.current $ ws
+                                case stack of
+                                  Just stack -> do
+                                    focused <- liftM (colorize "#ffca00") . windowName . W.focus $ stack
+                                    ups <- mapM (liftM (colorize "#aaaaaa") . windowName) . W.up $ stack
+                                    downs <- mapM (liftM (colorize "#aaaaaa") . windowName) . W.down $ stack
+                                    return . Just . intercalate " " $ reverse ups ++ focused : downs
+                                  Nothing -> return Nothing
+
   where
     windowName = fmap show . getName
+    grey = taffybarColor "#666666" ""
+    colorize color = wrap (grey "[ ") (grey " ]") . taffybarColor color ""
 
 myWorkspaces = ["1", "2", "3", "4", "5", "6", "7", "8", "9",  "0", "NSP", "full"]
 
