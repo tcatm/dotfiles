@@ -7,6 +7,6 @@ style "default-style"
 class "GtkWidget" style "default-style"
 
 #gtk-font-name = "Lucida Grande Mono 8"
-gtk-font-name = "DejaVu Sans 8"
+gtk-font-name = "Input Sans Compressed 9"
 #gtk-font-name = "Liberation Sans 8"
 gtk-icon-theme-name="gnome"
