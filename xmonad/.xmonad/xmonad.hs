@@ -51,6 +51,10 @@ import System.Taffybar.Hooks.PagerHints (pagerHints)
 
 import Foreign.C.Types (CLong)
 
+import Control.Monad
+
+import Data.List
+import Data.Maybe
 import Data.Monoid
 import Data.Ratio
 
@@ -73,7 +77,15 @@ myPP = taffybarPP { ppCurrent = return ""
                 , ppHiddenNoWindows = return "" 
                 , ppTitle = taffybarColor "#ffca00" "" . shorten 100
                 , ppLayout = return ""
+                , ppExtras =  [ logWindows ]
                 }
+
+
+logWindows :: Logger
+logWindows = withWindowSet $ \ws -> mapM windowName (maybe [] (\s -> W.up s ++ W.down s) . W.stack . W.workspace . W.current $ ws)
+                                >>= return . Just . intercalate " <span fgcolor=\"#aaaaaa\">/</span> " . map (wrap "<span fgcolor=\"#0099ff\">" "</span>")
+  where
+    windowName = fmap show . getName
 
 myWorkspaces = ["1", "2", "3", "4", "5", "6", "7", "8", "9",  "0", "NSP", "full"]
 
