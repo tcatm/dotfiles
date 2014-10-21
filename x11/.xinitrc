@@ -14,9 +14,10 @@ eval $(ssh-agent)
 eval $(cat ~/.fehbg)
 
 setxkbmap -option caps:super \
-          -option grp:ctrl_shift_toggle \
-          -layout "us-intl, gr" \
-          -variant intl
+					-option grp:ctrl_shift_toggle \
+					-option nodeadkeys \
+					-layout us \
+					-variant altgr-intl
 
 xset s default
 xset dpms 600 600 600
@@ -34,7 +35,6 @@ cryptkeeper &
 seafile-applet &
 bin/pulseosd &
 taffybar &
-xfce4-panel &
-synapse &
+synapse -s &
 
 exec xmonad
