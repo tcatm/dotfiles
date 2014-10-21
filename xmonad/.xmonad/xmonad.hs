@@ -280,7 +280,8 @@ myLayout =
            twopane'     = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (1/2)
            stack        = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (4/5)
 
-           with_sidebars = reflectHoriz
+           with_sidebars = renamed [CutWordsLeft 5]
+                         . reflectHoriz
                          . withIM (1/3) (Title "orgmode")
                          . withIM (1/3) (ClassName "Sonata")
                          . withIM (1/3) (Role "roster")
