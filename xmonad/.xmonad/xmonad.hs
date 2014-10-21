@@ -6,6 +6,7 @@ import TwoPaneFixed
 import XMonad
 import XMonad.Actions.CycleWindows
 import XMonad.Actions.CycleWS
+import XMonad.Actions.MouseResize
 import XMonad.Actions.PerWorkspaceKeys
 import XMonad.Actions.PhysicalScreens
 import XMonad.Actions.RotSlaves
@@ -16,6 +17,7 @@ import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
 import XMonad.Layout.HintedGrid
+import XMonad.Layout.IM
 import XMonad.Layout.LayoutModifier
 import XMonad.Layout.LayoutScreens
 import XMonad.Layout.NoBorders
@@ -23,11 +25,14 @@ import XMonad.Layout.NoFrillsDecoration
 import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Reflect
 import XMonad.Layout.Renamed
+import XMonad.Layout.Tabbed
 import XMonad.Layout.ToggleLayouts as TL
 import XMonad.Layout.TrackFloating
 import XMonad.Layout.TwoPane
+import XMonad.Layout.WindowArranger
 import XMonad.Layout.WindowNavigation
 import XMonad.Prompt
+import XMonad.Prompt.Input
 import XMonad.Prompt.Shell
 import XMonad.Prompt.XMonad
 import XMonad.Util.Loggers
@@ -131,8 +136,7 @@ myMouse (XConfig {XMonad.modMask = modMask}) = M.fromList
     ]
 
 myKeys conf@(XConfig {XMonad.modMask = modm}) =
-             [ ((modm .|. shiftMask, xK_Return), spawn $ XMonad.terminal conf) -- %! Launch terminal
-             , ((modm,               xK_space ), sendMessage NextLayout) -- %! Rotate through the available layout algorithms
+             [ ((modm,               xK_space ), sendMessage NextLayout) -- %! Rotate through the available layout algorithms
              , ((modm,               xK_f     ), sendMessage $ TL.Toggle "Full")
              , ((modm .|. shiftMask, xK_space ), setLayout $ XMonad.layoutHook conf) -- %!  Reset the layouts on the current workspace to default
 
@@ -161,6 +165,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((modm, xK_b), sendMessage ToggleStruts)
              , ((modm, xK_c ), kill)
              , ((modm, xK_F12), xmonadPrompt myXPConfig)
+             , ((modm .|. shiftMask, xK_F12), inputPrompt defaultXPConfig "prog" ?+ ((flip restart) False))
 
              -- move focus up or down the window stack
              , ((modm, xK_k), windowUp)
@@ -205,23 +210,29 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((modm .|. shiftMask, xK_Page_Down), spawn "pactl -s openrd set-sink-volume 0 -- +1%")
 
              , ((modm, xK_Delete), spawn "amixer -c0 -q set Master 5- unmute")
-             , ((modm, xK_End), spawn "bin/update_muting.sh")
+             , ((modm, xK_End), spawn "amixer -c29 set Console toggle")
              , ((modm, xK_Page_Down), spawn "amixer -c0 -q set Master 1.5+ unmute")
              -- XF86AudioLowerVolume
              , ((0, 0x1008ff11), spawn "amixer -c0 -q set Master 5- unmute")
              -- XF86AudioRaiseVolume
              , ((0, 0x1008ff13), spawn "amixer -c0 -q set Master 1.5+ unmute")
-             , ((0, 0x1008ff12), spawn "amixer -c29 -q sset Console toggle")
+             -- XF86AudioMute
+             --, ((0, 0x1008ff12), spawn "amixer -c29 -q set Console toggle")
+             -- XF86AudioMicMute
+             , ((0, 0x1008ffb2), spawn "amixer -q set Capture toggle")
 
 
              , ((0, 0x1008ff41), spawn "xset dpms force off")
+             , ((0, 0x1008ff03), spawn "xbacklight -time 0 - 7")
+             , ((0, 0x1008ff02), spawn "xbacklight -time 0 + 7")
 
-             , ((modm,                               xK_s), layoutSplitScreen 2 (TwoPane (2/5) (3/5)))
+             --, ((modm,                               xK_s), layoutSplitScreen 2 (TwoPane (2/5) (3/5)))
+             , ((modm,                               xK_s), layoutSplitScreen 2 (TwoPane (1/2) (1/2)))
              , ((modm .|. controlMask .|. shiftMask, xK_space), rescreen)
 
-             , ((modm, xK_w), viewAndWarp 0)
-             , ((modm, xK_e), viewAndWarp 1)
-             , ((modm, xK_r), viewAndWarp 2)
+             , ((modm, xK_w), viewScreen 0)
+             , ((modm, xK_e), viewScreen 1)
+             , ((modm, xK_r), viewScreen 2)
 
              , ((modm, xK_BackSpace), bindOn [("full", windows W.focusDown), ("", windows $ W.greedyView "full")])
 
@@ -229,13 +240,13 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              ]++[
               ((m .|. modm .|. mod1Mask, k), windows $ f i)
               | (i, k) <- zip myWorkspaces $ [xK_1 .. xK_9] ++ [xK_0]
-              , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
+              , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]
 
              -- greedy view (move workspace to active screen)
              ]++[
               ((m .|. modm, k), windows $ f i)
               | (i, k) <- zip myWorkspaces $ [xK_1 .. xK_9] ++ [xK_0]
-              , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]
+              , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
              ]
           where
             myXPConfig = defaultXPConfig
@@ -254,11 +265,13 @@ myTheme = defaultTheme { inactiveBorderColor = "#336698"
 myLayout =
            onWorkspace "full" full $
            avoidStruts $
+           mouseResize $
            windowNavigation $
            smartBorders $
            toggleLayouts full $
            with_sidebars $
            trackFloating $
+           onWorkspace "2" (simpleTabbed ||| Grid False) $
            (Grid False ||| Grid True ||| twopane ||| twopane' ||| full)
 
          where
@@ -267,14 +280,11 @@ myLayout =
            twopane'     = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (1/2)
            stack        = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (4/5)
 
-           with_sidebars x = combineTwoP (TwoPaneFixed (1/2)) x (Grid True)
-                             (Not $ Prelude.foldr Or (Const False) sidebarP)
-           sidebarP = [ (Title "orgmode")
-                      , (ClassName "Chromium" `And` Role "pop-up")
-                      , (Role "roster")
-                      , (ClassName "Turpial")
-                      , (ClassName "Sonata")
-                      ]
+           with_sidebars = reflectHoriz
+                         . withIM (1/3) (Title "orgmode")
+                         . withIM (1/3) (ClassName "Sonata")
+                         . withIM (1/3) (Role "roster")
+                         . reflectHoriz
 
 -- Main configuration
 myConfig = defaultConfig
@@ -283,22 +293,21 @@ myConfig = defaultConfig
            , workspaces         = myWorkspaces
            , layoutHook         = myLayout
            , manageHook         = myManageHook <+> manageSpawn <+> manageDocks
-           , logHook            = ewmhDesktopsLogHook <+> updatePointer (Relative 0.5 0.5)
+           , logHook            = ewmhDesktopsLogHook <+> updatePointer (Relative 0.95 0.95)
            , handleEventHook    = fullscreenEventHook <+> ewmhDesktopsEventHook' <+> focusOnMouseMove
            , mouseBindings      = myMouse
            , keys               = newKeys
            , terminal           = myTerminal
-           , borderWidth        = 2
+           , borderWidth        = 0
            , normalBorderColor  = "#4d3d00"
            , focusedBorderColor = "#ff0000"
+           , focusFollowsMouse  = True
            }
 
 scratchpads = [ NS "orgmode" "emacs --name orgmode ~/important/org/main.org" (icon =? "orgmode") nonFloating
               , NS "tracks" "chromium --app=https://tracks.draic.info/todos.m" (propertyToQuery $ ClassName "Chromium" `And` Role "pop-up") nonFloating
               , NS "qalculate" "qalculate" (icon =? "Qalculate!") nonFloating
               ] where icon = stringProperty "WM_ICON_NAME"
-
-
 
 
 -- Helper functions
@@ -316,18 +325,6 @@ checkDialog = ask >>= \w -> liftX $ do
 -- | Helper to read a property
 getProp :: Atom -> Window -> X (Maybe [CLong])
 getProp a w = withDisplay $ \dpy -> io $ getWindowProperty32 dpy a w
-
-viewAndWarp :: Int -> X ()
-viewAndWarp n = do
-  i <- getScreen $ P n
-  whenJust i $ \s -> do
-                 ws <- screenWorkspace s
-                 whenJust ws $ \w -> windows . W.view $ w
-
-findM :: Monad m => (a -> m Bool) -> [a] -> m (Maybe a)
-findM _ [] = return Nothing
-findM f (x:xs) = do { b <- f x; if b then return (Just x) else findM f xs }
-
 
 setFullscreenSupported :: X ()
 setFullscreenSupported = withDisplay $ \dpy -> do
