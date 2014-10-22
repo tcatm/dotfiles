@@ -3,7 +3,7 @@
 
 import ComboP
 import TwoPaneFixed
-import XMonad
+import XMonad hiding ( (|||) )
 import XMonad.Actions.CycleWindows
 import XMonad.Actions.CycleWS
 import XMonad.Actions.MouseResize
@@ -18,6 +18,7 @@ import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
 import XMonad.Layout.HintedGrid
 import XMonad.Layout.IM
+import XMonad.Layout.LayoutCombinators
 import XMonad.Layout.LayoutModifier
 import XMonad.Layout.LayoutScreens
 import XMonad.Layout.NoBorders
@@ -26,7 +27,6 @@ import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Reflect
 import XMonad.Layout.Renamed
 import XMonad.Layout.Tabbed
-import XMonad.Layout.ToggleLayouts as TL
 import XMonad.Layout.TrackFloating
 import XMonad.Layout.TwoPane
 import XMonad.Layout.WindowArranger
@@ -159,7 +159,7 @@ myMouse (XConfig {XMonad.modMask = modMask}) = M.fromList
 
 myKeys conf@(XConfig {XMonad.modMask = modm}) =
              [ ((modm,               xK_space ), sendMessage NextLayout) -- %! Rotate through the available layout algorithms
-             , ((modm,               xK_f     ), sendMessage $ TL.Toggle "Full")
+             , ((modm,               xK_f     ), sendMessage $ JumpToLayout "Full")
              , ((modm .|. shiftMask, xK_space ), setLayout $ XMonad.layoutHook conf) -- %!  Reset the layouts on the current workspace to default
 
              , ((modm,               xK_n     ), refresh) -- %! Resize viewed windows to the correct size
@@ -290,7 +290,6 @@ myLayout =
            mouseResize $
            windowNavigation $
            smartBorders $
-           toggleLayouts full $
            with_sidebars $
            trackFloating $
            onWorkspace "2" (full ||| Grid False) $
