@@ -77,18 +77,18 @@ myPP = taffybarPP { ppCurrent = return ""
                 , ppHiddenNoWindows = return "" 
                 , ppTitle = return ""
                 , ppLayout = return ""
-                , ppExtras =  [ logWindows ]
+                , ppExtras =  [ logWindows 30 ]
                 }
 
 
-logWindows :: Logger
-logWindows = withWindowSet $ \ws -> do
+logWindows :: Int -> Logger
+logWindows len = withWindowSet $ \ws -> do
                                 let stack = W.stack . W.workspace . W.current $ ws
                                 case stack of
                                   Just stack -> do
-                                    focused <- liftM (colorize "#ffca00") . windowName . W.focus $ stack
-                                    ups <- mapM (liftM (colorize "#aaaaaa") . windowName) . W.up $ stack
-                                    downs <- mapM (liftM (colorize "#aaaaaa") . windowName) . W.down $ stack
+                                    focused <- liftM (colorize "#ffca00" . shorten len) . windowName . W.focus $ stack
+                                    ups <- mapM (liftM (colorize "#aaaaaa" . shorten len) . windowName) . W.up $ stack
+                                    downs <- mapM (liftM (colorize "#aaaaaa" . shorten len) . windowName) . W.down $ stack
                                     return . Just . intercalate " " $ reverse ups ++ focused : downs
                                   Nothing -> return Nothing
 
@@ -293,7 +293,7 @@ myLayout =
            toggleLayouts full $
            with_sidebars $
            trackFloating $
-           onWorkspace "2" (simpleTabbed ||| Grid False) $
+           onWorkspace "2" (full ||| Grid False) $
            (Grid False ||| Grid True ||| twopane ||| twopane' ||| full)
 
          where
