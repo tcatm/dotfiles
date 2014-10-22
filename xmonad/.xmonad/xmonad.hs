@@ -15,16 +15,19 @@ import XMonad.Actions.UpdatePointer
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
+import XMonad.Layout.BoringWindows
 import XMonad.Layout.HintedGrid
 import XMonad.Layout.IM
 import XMonad.Layout.LayoutCombinators
 import XMonad.Layout.LayoutModifier
 import XMonad.Layout.LayoutScreens
+import XMonad.Layout.Minimize
 import XMonad.Layout.NoBorders
 import XMonad.Layout.NoFrillsDecoration
 import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Reflect
 import XMonad.Layout.Renamed
+import XMonad.Layout.Spacing
 import XMonad.Layout.Tabbed
 import XMonad.Layout.TrackFloating
 import XMonad.Layout.TwoPane
@@ -73,28 +76,42 @@ main = do
 myPP = taffybarPP { ppCurrent = return ""
                 , ppVisible = return ""
                 , ppHidden = return ""
-                , ppHiddenNoWindows = return "" 
+                , ppHiddenNoWindows = return ""
                 , ppTitle = return ""
                 , ppLayout = return ""
                 , ppExtras =  [ logWindows 30 ]
                 }
 
 
+data WindowState = Focused | Visible | Hidden
+
 logWindows :: Int -> Logger
 logWindows len = withWindowSet $ \ws -> do
                                 let stack = W.stack . W.workspace . W.current $ ws
                                 case stack of
                                   Just stack -> do
-                                    focused <- liftM (colorize "#ffca00" . shorten len) . windowName . W.focus $ stack
-                                    ups <- mapM (liftM (colorize "#aaaaaa" . shorten len) . windowName) . W.up $ stack
-                                    downs <- mapM (liftM (colorize "#aaaaaa" . shorten len) . windowName) . W.down $ stack
-                                    return . Just . intercalate " " $ reverse ups ++ focused : downs
+                                    focused <- liftM (\s -> (Focused, s)) . windowName . W.focus $ stack
+                                    ups <- mapM (markState Visible) . W.up $ stack
+                                    downs <- mapM (markState Visible) . W.down $ stack
+                                    return . Just . intercalate " " $ map prettify $ reverse ups ++ focused : downs
                                   Nothing -> return Nothing
 
   where
     windowName = fmap show . getName
+    markState def w = do
+                        name <- windowName w
+                        minimized <- isMinimized w
+                        if minimized then
+                          return (Hidden, name)
+                        else
+                          return (def, name)
+
     grey = taffybarColor "#666666" ""
     colorize color = wrap (grey "[ ") (grey " ]") . taffybarColor color ""
+    prettify (s, w) = case s of
+                        Focused -> colorize "#ffca00" . shorten len $ w
+                        Visible -> colorize "#aaaaaa" . shorten len $ w
+                        Hidden  -> colorize "#ff0030" . shorten len $ w
 
 myWorkspaces = ["1", "2", "3", "4", "5", "6", "7", "8", "9",  "0", "NSP", "full"]
 
@@ -113,7 +130,7 @@ myManageHook = (composeAll
                <+> namedScratchpadManageHook scratchpads
 
           where role = stringProperty "WM_WINDOW_ROLE"
-                icon = stringProperty "WM_ICON_NAME" 
+                icon = stringProperty "WM_ICON_NAME"
 
 getLayout = withWindowSet $ return . W.layout . W.workspace . W.current
 
@@ -125,15 +142,15 @@ differentTwoPane a b = do
 
 toggleWindow = differentTwoPane
                  (windows $ W.modify' toggleTwoPane)
-                 (windows $ W.focusDown)
+                 focusDown
 
 windowUp = differentTwoPane
              rotFocusedUp
-             (windows $ W.focusUp)
+             focusUp
 
 windowDown = differentTwoPane
                rotFocusedDown
-               (windows $ W.focusDown)
+               focusDown
 
 toggleMaster = W.modify' $ \c -> case c of
                W.Stack t [] []     -> W.Stack t [] []
@@ -171,6 +188,10 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              -- resizing the master/slave ratio
              , ((modm,               xK_h     ), sendMessage Shrink) -- %! Shrink the master area
              , ((modm,               xK_l     ), sendMessage Expand) -- %! Expand the master area
+
+             -- minimizing windows
+             , ((modm,               xK_m     ), withFocused minimizeWindow)
+             , ((modm .|. shiftMask, xK_m     ), sendMessage RestoreNextMinimizedWin)
 
              -- floating layer support
              , ((modm,               xK_t     ), withFocused $ windows . W.sink) -- %! Push window back into tiling
@@ -285,11 +306,14 @@ myTheme = defaultTheme { inactiveBorderColor = "#336698"
 
 myLayout =
            onWorkspace "full" full $
+           boringWindows $
+           renamed [CutWordsLeft 1] $ minimize $
            avoidStruts $
            windowNavigation $
            smartBorders $
            with_sidebars $
            trackFloating $
+           renamed [CutWordsLeft 2] $ smartSpacing 5 $
            onWorkspace "2" (full ||| Grid False) $
            (Grid False ||| Grid True ||| twopane ||| twopane' ||| full)
 
@@ -425,4 +449,12 @@ instance LayoutClass TwoPane' a where
                    _           -> Nothing
 
     description _ = "TwoPane"
+
+
+isMinimized :: Window -> X Bool
+isMinimized win = do
+      wmstate <- getAtom "_NET_WM_STATE"
+      mini <- getAtom "_NET_WM_STATE_HIDDEN"
+      wstate <- fromMaybe [] `fmap` getProp32 wmstate win
+      return $ fromIntegral mini `elem` wstate
 
