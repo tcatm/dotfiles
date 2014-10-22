@@ -6,7 +6,6 @@ import TwoPaneFixed
 import XMonad hiding ( (|||) )
 import XMonad.Actions.CycleWindows
 import XMonad.Actions.CycleWS
-import XMonad.Actions.MouseResize
 import XMonad.Actions.PerWorkspaceKeys
 import XMonad.Actions.PhysicalScreens
 import XMonad.Actions.RotSlaves
@@ -146,13 +145,13 @@ newKeys = M.fromList . myKeys
 
 myMouse (XConfig {XMonad.modMask = modMask}) = M.fromList
     -- mod-button1 %! Set the window to floating mode and move by dragging
-    [ ((modMask, button1), \w -> focus w >> mouseMoveWindow w >> windows W.shiftMaster)
+    [ ((modMask, button1), \w -> mouseMoveWindow w >> windows W.shiftMaster)
 
     -- mod-button2 %! Raise the window to the top of the stack
     , ((modMask, button2), windows . (W.shiftMaster .) . W.focusWindow)
 
     -- mod-button3 %! Set the window to floating mode and resize by dragging
-    , ((modMask, button3), \w -> focus w >> mouseResizeWindow w >> windows W.shiftMaster)
+    , ((modMask, button3), \w -> mouseResizeWindow w >> windows W.shiftMaster)
 
     -- you may also bind events to the mouse scroll wheel (button4 and button5)
     ]
@@ -287,7 +286,6 @@ myTheme = defaultTheme { inactiveBorderColor = "#336698"
 myLayout =
            onWorkspace "full" full $
            avoidStruts $
-           mouseResize $
            windowNavigation $
            smartBorders $
            with_sidebars $
@@ -427,3 +425,4 @@ instance LayoutClass TwoPane' a where
                    _           -> Nothing
 
     description _ = "TwoPane"
+
