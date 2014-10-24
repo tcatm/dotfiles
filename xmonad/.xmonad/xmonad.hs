@@ -1,14 +1,9 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances, FlexibleContexts #-}
 {-# OPTIONS_GHC -fcontext-stack=100 #-}
 
-import ComboP
-import TwoPaneFixed
 import XMonad
-import XMonad.Actions.CycleWindows
-import XMonad.Actions.CycleWS
 import XMonad.Actions.PerWorkspaceKeys
 import XMonad.Actions.PhysicalScreens
-import XMonad.Actions.RotSlaves
 import XMonad.Actions.SpawnOn
 import XMonad.Actions.UpdateFocus
 import XMonad.Actions.UpdatePointer
@@ -18,32 +13,24 @@ import XMonad.Hooks.ManageDocks
 import XMonad.Layout.BoringWindows hiding (Replace)
 import XMonad.Layout.HintedGrid
 import XMonad.Layout.IM
-import XMonad.Layout.LayoutModifier
 import XMonad.Layout.LayoutScreens
 import XMonad.Layout.Minimize
 import XMonad.Layout.NoBorders
-import XMonad.Layout.NoFrillsDecoration
 import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Reflect
 import XMonad.Layout.Renamed
 import XMonad.Layout.Spacing
-import XMonad.Layout.Tabbed
 import XMonad.Layout.ToggleLayouts as TL
 import XMonad.Layout.TrackFloating
 import XMonad.Layout.TwoPane
-import XMonad.Layout.WindowArranger
 import XMonad.Layout.WindowNavigation
 import XMonad.Prompt
 import XMonad.Prompt.Input
-import XMonad.Prompt.Shell
 import XMonad.Prompt.XMonad
 import XMonad.Util.Loggers
 import XMonad.Util.NamedScratchpad
 import XMonad.Util.NamedWindows (getName)
-import XMonad.Util.Run
 import XMonad.Util.WindowProperties
-import XMonad.Util.WorkspaceCompare
-import XMonad.Util.XUtils (fi)
 
 import DBus.Client
 
@@ -58,7 +45,6 @@ import Control.Monad
 import Data.List
 import Data.Maybe
 import Data.Monoid
-import Data.Ratio
 
 import qualified Data.Map as M
 import qualified XMonad.StackSet as W
@@ -81,7 +67,6 @@ myPP = taffybarPP { ppCurrent = return ""
                 , ppLayout = return ""
                 , ppExtras =  [ logWindows 30 ]
                 }
-
 
 data WindowState = Focused | Visible | Hidden
 
@@ -131,26 +116,6 @@ myManageHook = (composeAll
 
           where role = stringProperty "WM_WINDOW_ROLE"
                 icon = stringProperty "WM_ICON_NAME"
-
-getLayout = withWindowSet $ return . W.layout . W.workspace . W.current
-
-differentTwoPane a b = do
-  layout <- fmap description getLayout
-  case layout of
-    "TwoPane" -> a
-    _         -> b
-
-toggleWindow = differentTwoPane
-                 (windows $ W.modify' toggleTwoPane)
-                 focusDown
-
-windowUp = differentTwoPane
-             rotFocusedUp
-             focusUp
-
-windowDown = differentTwoPane
-               rotFocusedDown
-               focusDown
 
 toggleMaster = W.modify' $ \c -> case c of
                W.Stack t [] []     -> W.Stack t [] []
@@ -209,17 +174,15 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((modm, xK_F12), xmonadPrompt myXPConfig)
              , ((modm .|. shiftMask, xK_F12), inputPrompt defaultXPConfig "prog" ?+ ((flip restart) False))
 
-             -- move focus up or down the window stack
-             , ((modm, xK_k), windowUp)
-             , ((modm, xK_j), windowDown)
-             , ((modm, xK_Tab), toggleWindow)
-             , ((modm, xK_Up),    windowUp)
-             , ((modm, xK_Down),  windowDown)
-
+             -- move focus
+             , ((modm, xK_k), focusUp)
+             , ((modm, xK_j), focusDown)
              , ((modm,               xK_Right), sendMessage $ Go R)
              , ((modm,               xK_Left ), sendMessage $ Go L)
              , ((modm,               xK_Up   ), sendMessage $ Go U)
              , ((modm,               xK_Down ), sendMessage $ Go D)
+
+             -- swap windows
              , ((modm .|. shiftMask, xK_Right), sendMessage $ Swap R)
              , ((modm .|. shiftMask, xK_Left ), sendMessage $ Swap L)
              , ((modm .|. shiftMask, xK_Up   ), sendMessage $ Swap U)
@@ -293,17 +256,6 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
           where
             myXPConfig = defaultXPConfig
 
-myTheme = defaultTheme { inactiveBorderColor = "#336698"
-                       , activeTextColor = "#000000"
-                       , inactiveTextColor = "#ffffff"
-                       , activeColor = "#FFE067"
-                       , activeBorderColor = "#FFE067"
-                       , inactiveColor = "#336698"
-                       , fontName = "xft:Monospace:size=8"
-                       , decoHeight = 14
-                       }
-
-
 myLayout =
            onWorkspace "full" full $
            boringWindows $
@@ -336,7 +288,7 @@ myConfig = defaultConfig
            , layoutHook         = myLayout
            , manageHook         = myManageHook <+> manageSpawn <+> manageDocks
            , logHook            = ewmhDesktopsLogHook <+> updatePointer (Relative 0.95 0.95)
-           , handleEventHook    = fullscreenEventHook <+> ewmhDesktopsEventHook' <+> focusOnMouseMove
+           , handleEventHook    = fullscreenEventHook <+> ewmhDesktopsEventHook <+> focusOnMouseMove
            , mouseBindings      = myMouse
            , keys               = newKeys
            , terminal           = myTerminal
@@ -375,79 +327,6 @@ setFullscreenSupported = withDisplay $ \dpy -> do
     c <- getAtom "ATOM"
     p <- getAtom "_NET_WM_STATE_FULLSCREEN"
     io $ changeProperty32 dpy r a c propModeAppend [fromIntegral p]
-
-toggleTwoPane :: (Eq a) => W.Stack a -> W.Stack a
-toggleTwoPane s@(W.Stack t [] []) = s
-toggleTwoPane s@(W.Stack t  l  r)
-  | l == []     = W.Stack (head r) [t] (tail r)
-  | otherwise   = W.Stack (head l) [] $ t:((tail l) ++ r)
-
-ewmhDesktopsEventHook' :: Event -> X All
-ewmhDesktopsEventHook' e = handle e >> return (All True)
-  where
-    handle :: Event -> X ()
-    handle (ClientMessageEvent {
-                   ev_window = w,
-                   ev_message_type = mt,
-                   ev_data = d
-           }) = withWindowSet $ \s -> do
-           sort' <- getSortByIndex
-           let ws = sort' $ W.workspaces s
-
-           a_cd <- getAtom "_NET_CURRENT_DESKTOP"
-           a_d <- getAtom "_NET_WM_DESKTOP"
-           a_aw <- getAtom "_NET_ACTIVE_WINDOW"
-           a_cw <- getAtom "_NET_CLOSE_WINDOW"
-           a_ignore <- mapM getAtom ["XMONAD_TIMER"]
-           if  mt == a_cd then do
-                   let n = head d
-                   if 0 <= n && fi n < length ws then
-                           windows $ W.view (W.tag (ws !! fi n))
-                     else  trace $ "Bad _NET_CURRENT_DESKTOP with data[0]="++show n
-            else if mt == a_d then do
-                   let n = head d
-                   if 0 <= n && fi n < length ws then
-                           windows $ W.shiftWin (W.tag (ws !! fi n)) w
-                     else  trace $ "Bad _NET_DESKTOP with data[0]="++show n
-            else if mt == a_aw then do
-                   windows $ W.swapMaster . W.focusWindow w
-            else if mt == a_cw then do
-                   killWindow w
-            else if mt `elem` a_ignore then do
-               return ()
-            else do
-              -- The Message is unknown to us, but that is ok, not all are meant
-              -- to be handled by the window manager
-              return ()
-    handle _ = return ()
-
-
-data TwoPane' a =
-    TwoPane' Rational Rational
-    deriving ( Show, Read )
-
-instance LayoutClass TwoPane' a where
-    doLayout (TwoPane' _ split) r s = return (arrange r s,Nothing)
-        where
-          arrange rect st = case reverse (W.up st) of
-                              (master:_) -> [(master,left),(W.focus st,right)]
-                              [] -> case W.down st of
-                                      (next:_) -> [(W.focus st,left),(next,right)]
-                                      [] -> [(W.focus st, rect)]
-              where
-                (left, right) = f rect split rect
-                f (Rectangle _ _ w h)
-                  | (w%h) <= (4%3) = splitVerticallyBy
-                  | otherwise      = splitHorizontallyBy
-
-    handleMessage (TwoPane' delta split) x =
-        return $ case fromMessage x of
-                   Just Shrink -> Just (TwoPane' delta (split - delta))
-                   Just Expand -> Just (TwoPane' delta (split + delta))
-                   _           -> Nothing
-
-    description _ = "TwoPane"
-
 
 isMinimized :: Window -> X Bool
 isMinimized win = do
