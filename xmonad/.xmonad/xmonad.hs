@@ -15,7 +15,7 @@ import XMonad.Actions.UpdatePointer
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
-import XMonad.Layout.BoringWindows
+import XMonad.Layout.BoringWindows hiding (Replace)
 import XMonad.Layout.HintedGrid
 import XMonad.Layout.IM
 import XMonad.Layout.LayoutModifier
@@ -311,18 +311,15 @@ myLayout =
            avoidStruts $
            windowNavigation $
            smartBorders $
-           toggleLayouts full $
            with_sidebars $
            trackFloating $
-           renamed [CutWordsLeft 2] $ smartSpacing 5 $
-           onWorkspace "2" (full ||| Grid False) $
-           (Grid False ||| Grid True ||| twopane ||| twopane' ||| full)
+           toggleLayouts full $
+           renamed [CutWordsLeft 2] $ smartSpacing 3 $
+           (grid ||| Tall 1 (3/100) (1/2))
 
          where
+           grid         = renamed [Replace "Grid"] $ GridRatio (2/3) True
            full         = noBorders Full
-           twopane      = TwoPane' (3/100) (1/2)
-           twopane'     = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (1/2)
-           stack        = renamed [CutWordsLeft 1] $ Mirror $ TwoPane (3/100) (4/5)
 
            with_sidebars = renamed [CutWordsLeft 5]
                          . reflectHoriz
