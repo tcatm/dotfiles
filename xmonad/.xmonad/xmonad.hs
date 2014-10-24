@@ -241,20 +241,23 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
 
              , ((modm, xK_BackSpace), bindOn [("full", windows W.focusDown), ("", windows $ W.greedyView "full")])
 
+             ]
+
              -- view (switch to workspace)
-             ]++[
-              ((m .|. modm .|. mod1Mask, k), windows $ f i)
-              | (i, k) <- zip myWorkspaces $ [xK_1 .. xK_9] ++ [xK_0]
-              , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]
+             ++ [ ((m .|. modm .|. mod1Mask, k), windows $ f i)
+                | (i, k) <- zip myWorkspaces $ k1k0
+                , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]
+                ]
 
              -- greedy view (move workspace to active screen)
-             ]++[
-              ((m .|. modm, k), windows $ f i)
-              | (i, k) <- zip myWorkspaces $ [xK_1 .. xK_9] ++ [xK_0]
-              , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
-             ]
+             ++ [ ((m .|. modm, k), windows $ f i)
+                | (i, k) <- zip myWorkspaces $ k1k0
+                , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]
+                ]
+
           where
             myXPConfig = defaultXPConfig
+            k1k0 = [xK_1..xK_9] ++ [xK_0]
 
 myLayout =
            onWorkspace "full" full $
