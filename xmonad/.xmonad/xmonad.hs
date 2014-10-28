@@ -198,8 +198,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((0, 0x1008ffa9), spawn "bin/thinkpad/toggle_touchpad.sh")
              , ((0, 0x1008ff2f), spawn "systemctl suspend")
              -- XF86ScreenSaver
-             , ((0, 0x1008ff2d), spawn "~/bin/lock")
-             , ((modm, xK_F2), spawn "~/bin/lock")
+             , ((0, 0x1008ff2d), spawn "xset s activate")
+             , ((modm, xK_F2), spawn "xset s activate")
              , ((modm, xK_Pause), spawn "bin/lockkbd")
 
              -- Multimedia

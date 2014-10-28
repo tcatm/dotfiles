@@ -2,8 +2,6 @@
 
 export _JAVA_AWT_WM_NONREPARENTING=1
 
-nohup runhaskell ~/bin/session-monad.hs &
-
 # Load monitor calibration early
 dispwin -d 1 -L
 dispwin -d 2 -L 2> /dev/null
@@ -36,5 +34,6 @@ seafile-applet &
 bin/pulseosd &
 taffybar &
 synapse -s &
+xss-lock -- i3lock -ti ~/bin/lockbg.png &
 
 exec xmonad
