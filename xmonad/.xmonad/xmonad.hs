@@ -104,6 +104,8 @@ myWorkspaces = ["1", "2", "3", "4", "5", "6", "7", "8", "9",  "0", "NSP", "full"
 
 doShiftAndView ws = mconcat $ fmap (\y -> y ws) [\x -> ask >> doF . W.view $ x, doShift]
 
+killAll = withWindowSet $ mapM_ killWindow . W.index
+
 myManageHook = (composeAll
                [ className =? "Wicd-client.py" --> doFloat
                , className =? "Qalculate" --> doFloat
@@ -171,7 +173,9 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((modm              , xK_q     ), spawn "if type xmonad; then xmonad --recompile && xmonad --restart; else xmessage xmonad not in \\$PATH: \"$PATH\"; fi") -- %! Restart xmonad
 
              , ((modm, xK_b), sendMessage ToggleStruts)
-             , ((modm, xK_c ), kill)
+             , ((modm              , xK_c), kill)
+             , ((modm .|. shiftMask, xK_c), killAll >> (setLayout $ XMonad.layoutHook conf))
+
              , ((modm, xK_F12), xmonadPrompt myXPConfig)
              , ((modm .|. shiftMask, xK_F12), inputPrompt defaultXPConfig "prog" ?+ ((flip restart) False))
 
