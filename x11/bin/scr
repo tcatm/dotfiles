@@ -1,0 +1,151 @@
+#!/bin/sh
+
+# Usage: scr [local|external|clone]
+# (no option) → try external, else local
+# local → local display
+# external → external + local if closed, else external only
+# clone → same content, local display scaled to fit external
+
+# planned features:
+# scale current screen
+# toggle: local -> external [0 .. n] -> clone
+
+if test -z "$DISPLAY"; then
+  export DISPLAY=$(for session in $(loginctl|grep seat|cut -c-10); do \
+    loginctl show-session $session | grep State=active -C20 | \
+    grep Display | cut -d= -f2 | head -n1 \
+    ;done)
+fi
+
+LOCAL=LVDS1
+WIDTH=
+HEIGHT=
+
+screensize () {
+  splitsize `xrandr -q --current|grep "^$1" -A1|tail -n1|sed "s/\([0-9]\+\)x\([0-9]\+\).*/\1x\2/"`
+}
+
+splitsize () {
+  WIDTH=`echo $1|cut -dx -f1`
+  HEIGHT=`echo $1|cut -dx -f2`
+}
+
+xrandr
+
+# figure out whether an external monitor is connected
+EXTERNALS=$(xrandr --current|grep ' connected'|cut -d' ' -f1|grep -v $LOCAL|sort)
+DISCONNECTED=$(xrandr --current|grep ' disconnected'|cut -d' ' -f1)
+SCALE=1
+
+EXTERNAL=`echo $EXTERNALS|cut -d' ' -f1`
+EXTERNAL2=""
+
+if test $(xrandr --current | grep -c -E 'DP2 connected|HDMI3 connected') -eq 2; then
+  MODE=docked
+  EXTERNAL=DP2
+  EXTERNAL2=HDMI3
+elif test -n "$EXTERNAL"; then
+  MODE=external
+  cat /proc/acpi/button/lid/LID/state | grep -q closed && MODE=external-only
+
+  screensize $LOCAL
+  w1=$WIDTH
+  h1=$HEIGHT
+
+  screensize $EXTERNAL
+  w2=$WIDTH
+  h2=$HEIGHT
+
+  SCALE=`echo "s1=$w2/$w1;s2=$h2/$h1;if(s1>s2) s1 else s2"|bc -l`
+  SCALEX=`echo "$w2/$w1"|bc -l`
+  SCALEY=`echo "$h2/$h1"|bc -l`
+else
+  # no external output connected
+  MODE=local
+fi
+
+if test -n "$1"; then
+  EXTERNAL2=""
+fi
+
+case $1 in
+  external-only)
+    if test -n "$EXTERNAL";then
+      MODE=$1
+    else
+      echo "No external screen found."
+      exit 1
+    fi
+    ;;
+  external)
+    if test -n "$EXTERNAL";then
+      MODE=$1
+    else
+      echo "No external screen found."
+      exit 1
+    fi
+    ;;
+  clone)
+    if test -n "$EXTERNAL";then
+      MODE=$1
+    else
+      echo "No external screen found."
+      exit 1
+    fi
+    ;;
+  local | beamer)
+    MODE=$1
+    ;;
+esac
+
+echo "New mode: $MODE"
+logger "scr: $MODE"
+
+OFF=""
+for ext in $EXTERNALS; do
+  if test "$ext" != "$EXTERNAL" -a "$ext" != "$EXTERNAL2"; then
+    OFF="$OFF --output $ext --off"
+  fi
+done
+
+for ext in $DISCONNECTED; do
+  OFF="$OFF --output $ext --off"
+done
+
+
+case $MODE in
+  docked)
+    xrandr --output $LOCAL --off
+    xrandr $OFF --output $LOCAL --off --output DP2 --auto --scale 1x1 --output HDMI3 --auto --scale 1x1 --right-of DP2 
+    ;;
+  external-only)
+    xrandr $OFF --output $LOCAL --off --output $EXTERNAL --auto --scale 1x1
+    ;;
+  external)
+    xrandr $OFF --output $LOCAL --primary --auto --scale 1x1 --output $EXTERNAL --auto --scale 1x1 --right-of $LOCAL
+    ;;
+  clone)
+    xrandr $OFF --output $LOCAL --auto --scale ${SCALEX}x${SCALEY} --output $EXTERNAL --auto --same-as $LOCAL
+    ;;
+  local)
+    if test -n "$EXTERNAL"; then
+      xrandr --output $EXTERNAL --off
+    fi
+
+    xrandr $OFF --output $LOCAL --auto --scale 1x1
+    ;;
+  beamer)
+    xrandr --output $LOCAL --off --output DP2 --primary --auto --output HDMI3 --auto --right-of DP2 --set "Broadcast RGB" "Full"
+    ;;
+  *)
+    echo "Unknown mode $MODE"
+    ;;
+esac
+
+cd ~/
+
+xrefresh
+eval $(cat ~/.fehbg)
+
+dispwin -d 1 -L 2> /dev/null
+dispwin -d 2 -L 2> /dev/null
