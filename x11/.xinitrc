@@ -1,5 +1,9 @@
 #!/bin/bash
 
+lidmon() {
+  dbus-monitor --system 'path=/org/freedesktop/UPower' | grep --line-buffered LidIsClosed | while read a; do scr; done
+}
+
 export _JAVA_AWT_WM_NONREPARENTING=1
 
 # Load monitor calibration early
@@ -34,6 +38,7 @@ seafile-applet &
 bin/pulseosd &
 taffybar &
 synapse -s &
+lidmon &
 xss-lock -- i3lock -ti ~/bin/lockbg.png &
 
 exec xmonad
