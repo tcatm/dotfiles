@@ -266,8 +266,8 @@ myLayout =
            boringWindows $
            renamed [CutWordsLeft 1] $ minimize $
            avoidStruts $
-           smartBorders $
            (flip G.group) (Full ||| Mirror (Column 1.41) ||| Mirror (Column 1)) $
+           smartBorders $
            with_sidebars $
            trackFloating $
            toggleLayouts full $
@@ -297,9 +297,9 @@ myConfig = defaultConfig
            , mouseBindings      = myMouse
            , keys               = newKeys
            , terminal           = myTerminal
-           , borderWidth        = 0
+           , borderWidth        = 1
            , normalBorderColor  = "#4d3d00"
-           , focusedBorderColor = "#ff0000"
+           , focusedBorderColor = "#ffca00"
            , focusFollowsMouse  = True
            }
 
