@@ -2,6 +2,7 @@
 {-# OPTIONS_GHC -fcontext-stack=100 #-}
 
 import XMonad
+import XMonad.Actions.CycleWS
 import XMonad.Actions.PerWorkspaceKeys
 import XMonad.Actions.PhysicalScreens
 import XMonad.Actions.SpawnOn
@@ -183,6 +184,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((modm, xK_k), focusUp)
              , ((modm, xK_j), focusDown)
 
+             , ((modm,               xK_Left ), prevWS)
+             , ((modm,               xK_Right), nextWS)
              , ((modm,               xK_Up   ), focusGroupUp)
              , ((modm,               xK_Down ), focusGroupDown)
              , ((modm .|. shiftMask, xK_Up   ), moveToGroupUp False)
