@@ -37,7 +37,7 @@ xrandr --query > /dev/null
 # figure out whether an external monitor is connected
 EXTERNALS=$(xrandr --current|grep ' connected'|cut -d' ' -f1|grep -v $LOCAL|sort)
 DISCONNECTED=$(xrandr --current|grep ' disconnected'|cut -d' ' -f1)
-LIDSTATE=$(cat /proc/acpi/button/lid/LID/state)
+LIDSTATE=$(cat /proc/acpi/button/lid/LID/state | cut -d' ' -f7)
 EXTERNAL=$(echo $EXTERNALS|cut -d' ' -f1)
 
 if test -z "$MODE"; then
