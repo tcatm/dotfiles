@@ -1,7 +1,6 @@
 import System.Taffybar
 
 import System.Taffybar.Systray
-import System.Taffybar.XMonadLog
 import System.Taffybar.Pager
 import System.Taffybar.WorkspaceSwitcher
 import System.Taffybar.WindowSwitcher
@@ -33,7 +32,7 @@ main = do
                                   }
 
   pager <- pagerNew defaultPagerConfig 
-                  { activeWindow     = colorize "green" "" . escape . shorten 40
+                  { activeWindow     = colorize "#ffca00" "" . escape . shorten 40
                   , activeLayout     = escape
                   , activeWorkspace  = colorize "#ffca00" "" . escape
                   , hiddenWorkspace  = colorize "#aaaaaa" "" . escape
@@ -54,12 +53,11 @@ main = do
       wss = wspaceSwitcherNew pager
       los = layoutSwitcherNew pager
       wnd = windowSwitcherNew pager
-      log = xmonadLogNew
       note = notifyAreaNew defaultNotificationConfig
       cpu = pollingGraphNew cpuCfg 0.5 cpuCallback
       tray = systrayNew
       battery = batteryBarNew (barHeight cfg) defaultBatteryConfig
 
-  defaultTaffybar cfg { startWidgets = [ wss, los, log ]
+  defaultTaffybar cfg { startWidgets = [ wss, los, wnd ]
                       , endWidgets = [ clock, battery, tray, note ]
                       }
