@@ -45,6 +45,7 @@ import Foreign.C.Types (CLong)
 import Control.Monad
 
 import Data.List
+import Data.List.Split
 import Data.Maybe
 import Data.Monoid
 
@@ -101,7 +102,7 @@ logWindows len = withWindowSet $ \ws -> do
                         Visible -> colorize "#aaaaaa" . shorten len $ w
                         Hidden  -> colorize "#ff0030" . shorten len $ w
 
-myWorkspaces = ["1", "2", "3", "4", "5", "6", "7", "8", "9",  "0", "NSP", "full"]
+myWorkspaces = (splitEvery 1 "αβγδεζηθικ") ++ ["Λ", "Ω"]
 
 doShiftAndView ws = mconcat $ fmap (\y -> y ws) [\x -> ask >> doF . W.view $ x, doShift]
 
