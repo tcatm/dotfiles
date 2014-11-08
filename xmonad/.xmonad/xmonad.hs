@@ -187,6 +187,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
 
              , ((modm,               xK_Left ), prevWS)
              , ((modm,               xK_Right), nextWS)
+             , ((modm .|. shiftMask, xK_Left ), shiftToPrev >> prevWS)
+             , ((modm .|. shiftMask, xK_Right), shiftToNext >> nextWS)
              , ((modm,               xK_Up   ), focusGroupUp)
              , ((modm,               xK_Down ), focusGroupDown)
              , ((modm .|. shiftMask, xK_Up   ), moveToGroupUp False)
