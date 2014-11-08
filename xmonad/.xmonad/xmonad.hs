@@ -270,7 +270,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
             k1k0 = [xK_1..xK_9] ++ [xK_0]
 
 myLayout =
-           onWorkspace "full" full $
+           onWorkspace "Ω" full $
            boringWindows $
            renamed [CutWordsLeft 1] $ minimize $
            avoidStruts $
