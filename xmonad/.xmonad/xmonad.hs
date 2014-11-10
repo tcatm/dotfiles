@@ -23,6 +23,7 @@ import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Reflect
 import XMonad.Layout.Renamed
 import XMonad.Layout.Spacing
+import XMonad.Layout.Tabbed
 import XMonad.Layout.ToggleLayouts as TL
 import XMonad.Layout.TrackFloating
 import XMonad.Layout.TwoPane
@@ -280,11 +281,12 @@ myLayout =
            trackFloating $
            toggleLayouts full $
            renamed [CutWordsLeft 2] $ smartSpacing 3 $
-           (Tall 1 (3/100) (1/2) ||| grid)
+           (Tall 1 (3/100) (1/2) ||| grid ||| tabs)
 
          where
            grid         = renamed [Replace "Grid"] $ GridRatio (2/3) True
            full         = noBorders Full
+           tabs         = tabbed shrinkText tabTheme
 
            with_sidebars = renamed [CutWordsLeft 5]
                          . reflectHoriz
@@ -292,6 +294,16 @@ myLayout =
                          . withIM (1/3) (ClassName "Sonata")
                          . withIM (1/3) (Role "roster")
                          . reflectHoriz
+
+tabTheme = defaultTheme { fontName = "xft:Roboto Regular:size=9"
+                        , inactiveBorderColor = "#231f20"
+                        , activeBorderColor = "#231f20"
+                        , decoHeight = 26
+                        , activeColor = "#231f20"
+                        , inactiveColor = "#231f20"
+                        , activeTextColor = "#ffca00"
+                        , inactiveTextColor = "#aaaaaa"
+                        }
 
 -- Main configuration
 myConfig = defaultConfig
