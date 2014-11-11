@@ -40,6 +40,12 @@ DISCONNECTED=$(xrandr --current|grep ' disconnected'|cut -d' ' -f1)
 LIDSTATE=$(cat /proc/acpi/button/lid/LID/state | cut -d' ' -f7)
 EXTERNAL=$(echo $EXTERNALS|cut -d' ' -f1)
 
+if test -n "$EXTERNAL"; then
+  screensize $EXTERNAL
+  SCALEW=$WIDTH
+  SCALEH=$HEIGHT
+fi
+
 if test -z "$MODE"; then
   if test -n "$EXTERNAL"; then
     if test "$LIDSTATE" == "closed"; then
@@ -47,10 +53,6 @@ if test -z "$MODE"; then
     else
       MODE=external
     fi
-
-    screensize $EXTERNAL
-    SCALEW=$WIDTH
-    SCALEH=$HEIGHT
   else
     # no external output connected
     MODE=local
