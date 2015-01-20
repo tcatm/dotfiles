@@ -277,8 +277,8 @@ myLayout =
            avoidStruts $
            (flip G.group) (Full ||| Mirror (Column 1.41) ||| Mirror (Column 1)) $
            smartBorders $
-           with_sidebars $
            trackFloating $
+           with_sidebars $
            toggleLayouts full $
            renamed [CutWordsLeft 2] $ smartSpacing 3 $
            (Tall 1 (3/100) (1/2) ||| grid ||| tabs)
@@ -290,8 +290,8 @@ myLayout =
 
            with_sidebars = renamed [CutWordsLeft 5]
                          . reflectHoriz
-                         . withIM (1/3) (Title "orgmode")
-                         . withIM (1/3) (ClassName "Sonata")
+                         . withIM (1/2) (Title "orgmode")
+                         . withIM (1/2) (ClassName "Sonata")
                          . withIM (1/3) (Role "roster")
                          . reflectHoriz
 
