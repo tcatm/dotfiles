@@ -323,7 +323,7 @@ myConfig = defaultConfig
            , focusFollowsMouse  = True
            }
 
-scratchpads = [ NS "orgmode" "emacs --name orgmode ~/important/org/main.org" (icon =? "orgmode") nonFloating
+scratchpads = [ NS "orgmode" "emacs --name orgmode ~/important/org/main.org --execute '(org-agenda-list)'" (icon =? "orgmode") nonFloating
               , NS "tracks" "chromium --app=https://tracks.draic.info/todos.m" (propertyToQuery $ ClassName "Chromium" `And` Role "pop-up") nonFloating
               , NS "qalculate" "qalculate" (icon =? "Qalculate!") nonFloating
               ] where icon = stringProperty "WM_ICON_NAME"
