@@ -154,7 +154,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((modm,               xK_n     ), refresh) -- %! Resize viewed windows to the correct size
 
              -- modifying the window order
-             , ((modm,               xK_Return), swapMaster >> refresh) -- %! Swap the focused window and the master window
+             , ((modm,               xK_Return), windows toggleMaster) -- %! Swap the focused window and the master window
 
              -- resizing the master/slave ratio
              , ((modm,               xK_h     ), sendMessage Shrink) -- %! Shrink the master area
@@ -185,8 +185,6 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              -- move focus
              , ((modm, xK_k), focusUp)
              , ((modm, xK_j), focusDown)
-             , ((modm .|. shiftMask, xK_k), swapUp >> refresh)
-             , ((modm .|. shiftMask, xK_j), swapDown >> refresh)
 
              , ((modm,               xK_Left ), prevWS)
              , ((modm,               xK_Right), nextWS)
