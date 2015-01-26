@@ -135,13 +135,13 @@ newKeys = M.fromList . myKeys
 
 myMouse (XConfig {XMonad.modMask = modMask}) = M.fromList
     -- mod-button1 %! Set the window to floating mode and move by dragging
-    [ ((modMask, button1), \w -> mouseMoveWindow w >> windows W.shiftMaster)
+    [ ((modMask, button1), \w -> mouseMoveWindow w)
 
     -- mod-button2 %! Raise the window to the top of the stack
     , ((modMask, button2), windows . (W.shiftMaster .) . W.focusWindow)
 
     -- mod-button3 %! Set the window to floating mode and resize by dragging
-    , ((modMask, button3), \w -> mouseResizeWindow w >> windows W.shiftMaster)
+    , ((modMask, button3), \w -> mouseResizeWindow w)
 
     -- you may also bind events to the mouse scroll wheel (button4 and button5)
     ]
@@ -312,7 +312,7 @@ myConfig = defaultConfig
            , layoutHook         = myLayout
            , manageHook         = myManageHook <+> manageSpawn <+> manageDocks
            , logHook            = ewmhDesktopsLogHookCustom namedScratchpadFilterOutWorkspace <+> updatePointer (Relative 0.95 0.95)
-           , handleEventHook    = fullscreenEventHook <+> ewmhDesktopsEventHookCustom namedScratchpadFilterOutWorkspace <+> focusOnMouseMove
+           , handleEventHook    = fullscreenEventHook <+> ewmhDesktopsEventHookCustom namedScratchpadFilterOutWorkspace
            , mouseBindings      = myMouse
            , keys               = newKeys
            , terminal           = myTerminal
