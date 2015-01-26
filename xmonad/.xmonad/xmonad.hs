@@ -12,9 +12,12 @@ import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
 import XMonad.Layout.BoringWindows hiding (Replace)
+import XMonad.Layout.FixedColumn
 import XMonad.Layout.HintedGrid
 import XMonad.Layout.IM
 import XMonad.Layout.LayoutScreens
+import XMonad.Layout.LimitWindows
+import XMonad.Layout.Magnifier
 import XMonad.Layout.Minimize
 import XMonad.Layout.NoBorders
 import XMonad.Layout.PerWorkspace
@@ -277,12 +280,12 @@ myLayout =
            with_sidebars $
            toggleLayouts full $
            renamed [CutWordsLeft 2] $ smartSpacing 3 $
-           (Tall 1 (3/100) (1/2) ||| grid ||| tabs)
+           (Tall 1 (3/100) (1/2) ||| grid ||| code)
 
          where
            grid         = renamed [Replace "Grid"] $ GridRatio (2/3) True
            full         = noBorders Full
-           tabs         = tabbed shrinkText tabTheme
+           code         = magnifiercz' 1.41 $ FixedColumn 1 20 90 10
 
            with_sidebars = renamed [CutWordsLeft 5]
                          . reflectHoriz
