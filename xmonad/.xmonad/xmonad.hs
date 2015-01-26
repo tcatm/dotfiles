@@ -11,8 +11,10 @@ import XMonad.Actions.UpdatePointer
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
-import XMonad.Layout.BoringWindows hiding (Replace)
+import XMonad.Layout.BoringWindows hiding (Replace, focusUp, focusDown)
+import XMonad.Layout.Column
 import XMonad.Layout.FixedColumn
+import XMonad.Layout.Groups.Helpers
 import XMonad.Layout.HintedGrid
 import XMonad.Layout.IM
 import XMonad.Layout.LayoutScreens
@@ -28,7 +30,6 @@ import XMonad.Layout.Tabbed
 import XMonad.Layout.ToggleLayouts as TL
 import XMonad.Layout.TrackFloating
 import XMonad.Layout.TwoPane
-import XMonad.Layout.WindowNavigation
 import XMonad.Prompt
 import XMonad.Prompt.Input
 import XMonad.Prompt.XMonad
@@ -54,6 +55,7 @@ import Data.Monoid
 
 import qualified Data.Map as M
 import qualified XMonad.StackSet as W
+import qualified XMonad.Layout.Groups as G
 
 myTerminal = "x-terminal-emulator"
 
@@ -148,15 +150,14 @@ myMouse (XConfig {XMonad.modMask = modMask}) = M.fromList
 
 myKeys conf@(XConfig {XMonad.modMask = modm}) =
              [ ((modm,               xK_space ), sendMessage NextLayout) -- %! Rotate through the available layout algorithms
+             , ((modm .|. shiftMask, xK_space ), sendMessage $ G.ToEnclosing $ SomeMessage $ NextLayout) -- %! Rotate through the available layout algorithms
              , ((modm,               xK_f     ), sendMessage $ TL.Toggle "Full")
-             , ((modm .|. shiftMask, xK_space ), setLayout $ XMonad.layoutHook conf) -- %!  Reset the layouts on the current workspace to default
+             , ((modm .|. shiftMask, xK_BackSpace ), setLayout $ XMonad.layoutHook conf) -- %!  Reset the layouts on the current workspace to default
 
              , ((modm,               xK_n     ), refresh) -- %! Resize viewed windows to the correct size
 
              -- modifying the window order
              , ((modm,               xK_Return), windows toggleMaster) -- %! Swap the focused window and the master window
-             , ((modm .|. shiftMask, xK_j     ), windows W.swapDown  ) -- %! Swap the focused window with the next window
-             , ((modm .|. shiftMask, xK_k     ), windows W.swapUp    ) -- %! Swap the focused window with the previous window
 
              -- resizing the master/slave ratio
              , ((modm,               xK_h     ), sendMessage Shrink) -- %! Shrink the master area
@@ -187,16 +188,17 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              -- move focus
              , ((modm, xK_k), focusUp)
              , ((modm, xK_j), focusDown)
-             , ((modm,               xK_Right), sendMessage $ Go R)
-             , ((modm,               xK_Left ), sendMessage $ Go L)
-             , ((modm,               xK_Up   ), sendMessage $ Go U)
-             , ((modm,               xK_Down ), sendMessage $ Go D)
 
-             -- swap windows
-             , ((modm .|. shiftMask, xK_Right), sendMessage $ Swap R)
-             , ((modm .|. shiftMask, xK_Left ), sendMessage $ Swap L)
-             , ((modm .|. shiftMask, xK_Up   ), sendMessage $ Swap U)
-             , ((modm .|. shiftMask, xK_Down ), sendMessage $ Swap D)
+             , ((modm,               xK_Left ), prevWS)
+             , ((modm,               xK_Right), nextWS)
+             , ((modm .|. shiftMask, xK_Left ), shiftToPrev >> prevWS)
+             , ((modm .|. shiftMask, xK_Right), shiftToNext >> nextWS)
+             , ((modm,               xK_Up   ), focusGroupUp)
+             , ((modm,               xK_Down ), focusGroupDown)
+             , ((modm .|. shiftMask, xK_Up   ), moveToGroupUp False)
+             , ((modm .|. shiftMask, xK_Down ), moveToGroupDown False)
+             , ((modm              , xK_Tab  ), focusGroupDown)
+             , ((modm .|. shiftMask, xK_Tab  ), moveToGroupDown True)
 
              -- scratchpads and similar stuff
              , ((modm, xK_p ), namedScratchpadAction scratchpads "gajim")
@@ -274,7 +276,7 @@ myLayout =
            boringWindows $
            renamed [CutWordsLeft 1] $ minimize $
            avoidStruts $
-           windowNavigation $
+           (flip G.group) (Full ||| Mirror (Column 1.41) ||| Mirror (Column 1)) $
            smartBorders $
            trackFloating $
            with_sidebars $
