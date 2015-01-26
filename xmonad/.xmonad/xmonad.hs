@@ -196,7 +196,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) =
              , ((modm .|. shiftMask, xK_Down ), sendMessage $ Swap D)
 
              -- scratchpads and similar stuff
-             , ((modm, xK_p ), namedScratchpadAction scratchpads "tracks")
+             , ((modm, xK_p ), namedScratchpadAction scratchpads "gajim")
              , ((modm, xK_o ), namedScratchpadAction scratchpads "orgmode")
              , ((modm, xK_n ), namedScratchpadAction scratchpads "qalculate")
 
@@ -320,7 +320,7 @@ myConfig = defaultConfig
            }
 
 scratchpads = [ NS "orgmode" "emacs --name orgmode ~/important/org/main.org --execute '(org-agenda-list)'" (icon =? "orgmode") nonFloating
-              , NS "tracks" "chromium --app=https://tracks.draic.info/todos.m" (propertyToQuery $ ClassName "Chromium" `And` Role "pop-up") nonFloating
+              , NS "gajim" "gajim" (propertyToQuery $ Role "roster") nonFloating
               , NS "qalculate" "qalculate" (icon =? "Qalculate!") nonFloating
               ] where icon = stringProperty "WM_ICON_NAME"
 
