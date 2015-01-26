@@ -131,7 +131,7 @@ newKeys = M.fromList . myKeys
 
 myMouse (XConfig {XMonad.modMask = modMask}) = M.fromList
     -- mod-button1 %! Set the window to floating mode and move by dragging
-    [ ((modMask, button1), \w -> mouseMoveWindow w)
+    [ ((modMask, button1), \w -> mouseMoveWindow w >> (windows W.shiftMaster))
 
     -- mod-button2 %! Raise the window to the top of the stack
     , ((modMask, button2), windows . (W.shiftMaster .) . W.focusWindow)
