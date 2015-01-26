@@ -127,12 +127,6 @@ myManageHook = (composeAll
           where role = stringProperty "WM_WINDOW_ROLE"
                 icon = stringProperty "WM_ICON_NAME"
 
-toggleMaster = W.modify' $ \c -> case c of
-               W.Stack t [] []     -> W.Stack t [] []
-               W.Stack t [] (r:rs) -> W.Stack r [] (t:rs)
-               W.Stack t ls rs     -> W.Stack t [] (xs ++ x : rs)
-                                      where (x:xs) = reverse ls
-
 newKeys = M.fromList . myKeys
 
 myMouse (XConfig {XMonad.modMask = modMask}) = M.fromList
