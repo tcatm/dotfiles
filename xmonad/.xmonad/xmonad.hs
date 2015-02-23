@@ -11,6 +11,7 @@ import XMonad.Actions.UpdatePointer
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
+import XMonad.Hooks.Place
 import XMonad.Layout.BoringWindows hiding (Replace, focusUp, focusDown)
 import XMonad.Layout.Column
 import XMonad.Layout.FixedColumn
@@ -120,6 +121,7 @@ myManageHook = (composeAll
                , className =? "Wine" --> doFloat
                , className =? "Xmessage"  --> doFloat
                , className =? "VirtualBox" --> doShiftAndView "full"
+               , className =? "Cssh" --> (placeHook (fixed (1/2, 0)) <+> doFloat)
                , checkDialog --> doFloat
                ])
                <+> namedScratchpadManageHook scratchpads
