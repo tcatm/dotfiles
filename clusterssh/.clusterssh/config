@@ -28,7 +28,7 @@ show_history=0
 ssh=/usr/bin/ssh
 ssh_args= -x -o ConnectTimeout=10
 telnet_args=
-terminal=/usr/bin/urxvt
+terminal=/usr/bin/xterm
 terminal_allow_send_events=-xrm '*.VT100.allowSendEvents:true'
 terminal_args=
 terminal_colorize=1
