@@ -120,12 +120,14 @@ set t_Co=256
 set background=dark
 
 " Favorite Color Scheme
-"colorscheme solarized
+colorscheme solarized
 "colorscheme desert256
 "colorscheme seoul256
-colorscheme jellybeans
+"colorscheme jellybeans
 "colorscheme distinguished
 "colorscheme zenburn
+
+execute pathogen#infect()
 
 set exrc
 set secure
@@ -133,3 +135,12 @@ set secure
 set cc=78
 
 set relativenumber
+
+hi Normal ctermbg=none
+hi LineNr ctermbg=none
+hi NonText ctermbg=none
+
+if &term =~ '256color'
+  " disable Background Color Erase (BCE)
+  set t_ut=
+endif
