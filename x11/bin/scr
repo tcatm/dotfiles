@@ -86,7 +86,7 @@ case $MODE in
     xrandr $OFF --output $LOCAL --primary --auto --scale 1x1 --output $EXTERNAL --auto --scale 1x1 --right-of $LOCAL
     ;;
   clone)
-    xrandr $OFF --output $LOCAL --auto --scale-from ${SCALEW}x${SCALEH} --output $EXTERNAL --auto --same-as $LOCAL
+    xrandr $OFF --output $LOCAL --auto --scale-from ${SCALEW}x${SCALEH} --set "scaling mode" "Full aspect" --output $EXTERNAL --auto --same-as $LOCAL
     ;;
   local)
     if test -n "$EXTERNAL"; then
